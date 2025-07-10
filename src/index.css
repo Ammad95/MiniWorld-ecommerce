@@ -1,0 +1,268 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom scrollbar - Deep purple theme */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-deepPurple-50;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-deepPurple-400 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-deepPurple-500;
+}
+
+/* Global styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white text-deepPurple-900 font-sans antialiased;
+  letter-spacing: -0.01em;
+}
+
+/* Modern typography */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-semibold tracking-tight;
+}
+
+/* Custom animations - Deep purple themed */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Modern card styles */
+.modern-card {
+  @apply bg-white rounded-xl border border-deepPurple-100 shadow-sm hover:shadow-md transition-all duration-300;
+}
+
+.modern-card:hover {
+  @apply border-deepPurple-200 shadow-md;
+}
+
+/* Deep purple gradient button styles */
+.btn-primary {
+  @apply bg-gradient-to-r from-deepPurple-600 to-violet-600 hover:from-deepPurple-700 hover:to-violet-700 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+}
+
+.btn-secondary {
+  @apply bg-white hover:bg-deepPurple-50 text-deepPurple-900 font-medium px-6 py-3 rounded-lg border border-deepPurple-200 hover:border-deepPurple-300 transition-all duration-200 shadow-sm hover:shadow-md;
+}
+
+.btn-accent {
+  @apply bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+}
+
+/* Deep purple themed form styles */
+.form-input {
+  @apply w-full px-4 py-3 rounded-lg border border-deepPurple-200 focus:border-deepPurple-500 focus:ring-4 focus:ring-deepPurple-50 transition-all duration-200 outline-none;
+}
+
+/* Modern spacing utilities */
+.section-padding {
+  @apply py-16 md:py-24;
+}
+
+.container-padding {
+  @apply px-4 md:px-6 lg:px-8;
+}
+
+/* Deep purple gradients */
+.gradient-bg {
+  background: linear-gradient(135deg, #faf7ff 0%, #f3ebff 100%);
+}
+
+.gradient-text {
+  @apply bg-gradient-to-r from-deepPurple-900 to-violet-600 bg-clip-text text-transparent;
+}
+
+.gradient-deep-purple {
+  background: linear-gradient(135deg, #3b0764 0%, #6b21a8 25%, #7c3aed 50%, #8b5cf6 75%, #a855f7 100%);
+}
+
+.gradient-purple-indigo {
+  background: linear-gradient(135deg, #581c87 0%, #7c3aed 50%, #4338ca 100%);
+}
+
+.gradient-violet-purple {
+  background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #9333ea 100%);
+}
+
+/* Modern shadows with deep purple tint */
+.shadow-soft {
+  box-shadow: 0 2px 15px -3px rgba(168, 85, 247, 0.1), 0 10px 20px -2px rgba(107, 33, 168, 0.05);
+}
+
+.shadow-medium {
+  box-shadow: 0 4px 25px -5px rgba(168, 85, 247, 0.15), 0 10px 10px -5px rgba(107, 33, 168, 0.08);
+}
+
+/* Loading states */
+.loading-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+/* Focus states with deep purple accent */
+.focus-ring {
+  @apply focus:outline-none focus:ring-4 focus:ring-deepPurple-50 focus:border-deepPurple-500;
+}
+
+/* Text selection with deep purple */
+::selection {
+  @apply bg-deepPurple-100 text-deepPurple-900;
+}
+
+/* Remove default focus outline and replace with modern ones */
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  @apply outline-none;
+}
+
+/* Modern spacing for better readability */
+.prose {
+  @apply leading-relaxed;
+}
+
+.prose p {
+  @apply mb-4;
+}
+
+.prose h1 {
+  @apply text-3xl md:text-4xl font-bold mb-6 leading-tight;
+}
+
+.prose h2 {
+  @apply text-2xl md:text-3xl font-semibold mb-4 leading-tight;
+}
+
+.prose h3 {
+  @apply text-xl md:text-2xl font-semibold mb-3 leading-tight;
+}
+
+/* Image optimization */
+img {
+  @apply max-w-full h-auto;
+}
+
+/* Modern grid layouts */
+.grid-auto-fit {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.grid-auto-fill {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+/* React Image Gallery Customization - Deep purple theme */
+.image-gallery-slide .image-gallery-image {
+  @apply rounded-lg;
+}
+
+.image-gallery-thumbnails-wrapper {
+  @apply mt-4;
+}
+
+.image-gallery-thumbnail.active {
+  @apply border-2 border-deepPurple-500;
+}
+
+/* Glow effects */
+.deep-purple-glow {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+}
+
+.violet-glow {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.deep-purple-border {
+  @apply border border-deepPurple-200;
+}
+
+.violet-border {
+  @apply border border-violet-200;
+}
+
+/* Hero gradient */
+.hero-gradient {
+  background: linear-gradient(135deg, 
+    rgba(59, 7, 100, 0.95) 0%,
+    rgba(107, 33, 168, 0.9) 25%,
+    rgba(124, 58, 237, 0.85) 50%,
+    rgba(139, 92, 246, 0.8) 75%,
+    rgba(168, 85, 247, 0.75) 100%
+  );
+}
+
+.card-hover-deep-purple:hover {
+  @apply shadow-lg border-deepPurple-300 bg-deepPurple-50;
+}
+
+.card-hover-violet:hover {
+  @apply shadow-lg border-violet-300 bg-violet-50;
+}
+
+/* Swiper customization */
+.swiper-pagination-bullet-active {
+  @apply bg-deepPurple-600;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  @apply text-deepPurple-600;
+}
+
+/* Loading animations */
+.loading-pulse {
+  @apply animate-pulse bg-deepPurple-100;
+} 

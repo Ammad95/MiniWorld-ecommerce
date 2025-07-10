@@ -1,0 +1,44 @@
+<svg width="32" height="32" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer blue shape - mother's silhouette -->
+  <path d="M250 100C300 80 350 90 400 120C430 140 450 170 445 210C440 250 420 290 390 320C360 350 320 370 280 380C240 390 200 380 160 360C120 340 90 310 80 270C70 230 80 190 100 160C120 130 150 110 180 100C210 90 230 95 250 100Z" fill="url(#blueGradient1)"/>
+  
+  <!-- Inner mother silhouette -->
+  <path d="M180 120C200 110 220 115 240 125C260 115 280 120 300 135C320 150 330 175 325 200C320 225 305 250 285 270C265 290 240 300 215 305C190 310 165 305 145 290C125 275 115 250 120 225C125 200 140 180 160 165C170 155 180 145 190 140" fill="url(#blueGradient2)"/>
+  
+  <!-- Mother's flowing hair -->
+  <path d="M200 130C230 120 260 125 290 140C310 150 325 170 320 190C315 210 300 230 280 245C260 260 235 265 210 260" fill="none" stroke="#2E5BBA" stroke-width="8" stroke-linecap="round"/>
+  
+  <path d="M190 150C220 140 250 145 280 160C300 170 315 185 310 205" fill="none" stroke="#4A90E2" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Baby silhouette -->
+  <ellipse cx="280" cy="220" rx="35" ry="45" fill="white"/>
+  
+  <!-- Baby's head -->
+  <circle cx="285" cy="205" r="18" fill="white"/>
+  
+  <!-- Mother's arms embracing baby -->
+  <path d="M240 200C260 190 280 195 300 210C320 225 330 245 325 265C320 285 305 300 285 310C265 320 245 315 230 300C215 285 210 265 215 245C220 225 235 210 250 200" fill="white"/>
+  
+  <path d="M220 250C240 240 260 245 280 260C300 275 310 295 305 315C300 335 285 350 265 360C245 370 225 365 210 350C195 335 190 315 195 295C200 275 215 260 230 250" fill="white"/>
+  
+  <!-- Lower blue curves -->
+  <path d="M150 320C180 330 210 325 240 335C270 345 300 340 330 355C360 370 380 395 375 420" fill="none" stroke="#2E5BBA" stroke-width="12" stroke-linecap="round"/>
+  
+  <path d="M380 200C400 220 410 250 405 280C400 310 385 340 360 365" fill="none" stroke="#4A90E2" stroke-width="10" stroke-linecap="round"/>
+  
+  <!-- Additional flowing elements -->
+  <path d="M340 170C360 180 375 200 370 225C365 250 350 275 325 295" fill="none" stroke="#2E5BBA" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="blueGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2E5BBA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blueGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2E5BBA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg> 
