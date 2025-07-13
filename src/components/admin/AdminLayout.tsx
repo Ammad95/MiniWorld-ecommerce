@@ -17,7 +17,7 @@ import {
   FiLock,
   FiTrendingUp
 } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
 import Logo from '../common/Logo';
 
 interface NavigationItem {
@@ -32,7 +32,7 @@ interface NavigationItem {
 const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { state, logout } = useAuth();
+  const { state, signOut } = useSupabaseAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -104,7 +104,7 @@ const AdminLayout: React.FC = () => {
   ];
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate('/admin/login');
   };
 

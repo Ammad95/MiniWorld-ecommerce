@@ -1,32 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { FiStar, FiHeart, FiShoppingCart, FiCheck, FiMinus, FiPlus } from 'react-icons/fi';
 import ImageGallery from 'react-image-gallery';
-import { 
-  FiStar, 
-  FiShoppingCart, 
-  FiHeart, 
-  FiMinus, 
-  FiPlus, 
-  FiCheck
-} from 'react-icons/fi';
-import { useProducts } from '../context/ProductContext';
-import { useCart } from '../context/CartContext';
-import ProductCard from '../components/products/ProductCard';
 import 'react-image-gallery/styles/css/image-gallery.css';
+import { useCart } from '../context/CartContext';
+import { useSupabaseProducts } from '../context/SupabaseProductContext';
+import { Product } from '../types';
 
-const ProductDetailsPage: React.FC = () => {
+interface ProductDetailsPageProps {}
+
+const ProductDetailsPage: React.FC<ProductDetailsPageProps> = () => {
   const { productId } = useParams<{ productId: string }>();
-  const [quantity, setQuantity] = useState(1);
-  const [, setSelectedImageIndex] = useState(0);
-  const [isAddedToCart, setIsAddedToCart] = useState(false);
   const { addItem } = useCart();
-  const { getProduct, state: productState } = useProducts();
+  const { getProduct, state: productState } = useSupabaseProducts();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [, setSelectedImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [isAddedToCart, setIsAddedToCart] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const product = productId ? getProduct(productId) : undefined;
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (productId) {
+        const fetchedProduct = getProduct(productId);
+        setProduct(fetchedProduct || null);
+      }
+      setLoading(false);
+    };
+
+    fetchProduct();
+  }, [productId, getProduct]);
+
   const relatedProducts = product 
     ? productState.products.filter(p => p.category === product.category && p.id !== productId).slice(0, 4)
     : [];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-navy-50">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-navy-900 mb-4">
+            Loading Product...
+          </h1>
+          <p className="text-navy-600 mb-8">Please wait while we fetch the product details.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -51,9 +72,11 @@ const ProductDetailsPage: React.FC = () => {
   }
 
   const handleAddToCart = () => {
-    addItem(product, quantity);
-    setIsAddedToCart(true);
-    setTimeout(() => setIsAddedToCart(false), 2000);
+    const result = addItem(product, quantity);
+    if (result.success) {
+      setIsAddedToCart(true);
+      setTimeout(() => setIsAddedToCart(false), 3000);
+    }
   };
 
   const handleQuantityChange = (change: number) => {
@@ -263,31 +286,29 @@ const ProductDetailsPage: React.FC = () => {
                   whileTap={{ scale: 0.98 }}
                   disabled={!product.inStock}
                 >
-                  <AnimatePresence mode="wait">
-                    {isAddedToCart ? (
-                      <motion.div
-                        key="added"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        exit={{ scale: 0 }}
-                        className="flex items-center space-x-2"
-                      >
-                        <FiCheck className="w-5 h-5" />
-                        <span>Added to Cart!</span>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="add"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        exit={{ scale: 0 }}
-                        className="flex items-center space-x-2"
-                      >
-                        <FiShoppingCart className="w-5 h-5" />
-                        <span>{product.inStock ? 'Add to Cart' : 'Out of Stock'}</span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {isAddedToCart ? (
+                    <motion.div
+                      key="added"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="flex items-center space-x-2"
+                    >
+                      <FiCheck className="w-5 h-5" />
+                      <span>Added to Cart!</span>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="add"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="flex items-center space-x-2"
+                    >
+                      <FiShoppingCart className="w-5 h-5" />
+                      <span>{product.inStock ? 'Add to Cart' : 'Out of Stock'}</span>
+                    </motion.div>
+                  )}
                 </motion.button>
 
                 <motion.button
@@ -330,7 +351,18 @@ const ProductDetailsPage: React.FC = () => {
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  <ProductCard product={relatedProduct} />
+                  {/* Assuming ProductCard is defined elsewhere or will be added */}
+                  {/* <ProductCard product={relatedProduct} /> */}
+                  <div className="bg-white rounded-2xl p-6 border border-navy-200 shadow-soft">
+                    <h3 className="text-xl font-bold text-navy-900 mb-2">{relatedProduct.name}</h3>
+                    <p className="text-navy-600 text-sm">{relatedProduct.description}</p>
+                    <div className="flex items-center space-x-2 mt-4">
+                      <span className="text-navy-900 font-bold">${relatedProduct.price.toFixed(2)}</span>
+                      {relatedProduct.originalPrice && (
+                        <span className="text-navy-500 text-sm line-through">${relatedProduct.originalPrice.toFixed(2)}</span>
+                      )}
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </div>

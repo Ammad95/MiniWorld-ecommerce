@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FiArrowRight, FiStar, FiTruck, FiHeart } from 'react-icons/fi';
 import { categories } from '../data/categories';
-import { useProducts } from '../context/ProductContext';
+import { useSupabaseProducts } from '../context/SupabaseProductContext';
 import ProductCard from '../components/products/ProductCard';
 
 const Home: React.FC = () => {
-  const { state: productState } = useProducts();
+  const { state: productState } = useSupabaseProducts();
   const featuredProducts = productState.products.filter(product => product.isFeatured);
 
   // Custom images for specific categories

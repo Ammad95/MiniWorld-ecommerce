@@ -3,12 +3,12 @@ import { motion } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import { categories } from '../data/categories';
-import { useProducts } from '../context/ProductContext';
+import { useSupabaseProducts } from '../context/SupabaseProductContext';
 import ProductCard from '../components/products/ProductCard';
 
 const CategoryPage: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
-  const { getProductsByCategory } = useProducts();
+  const { getProductsByCategory } = useSupabaseProducts();
   
   const category = categories.find(cat => cat.id === categoryId);
   const categoryProducts = categoryId ? getProductsByCategory(categoryId) : [];

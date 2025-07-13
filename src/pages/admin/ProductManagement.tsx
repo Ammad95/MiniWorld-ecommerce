@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { FiPlus, FiEdit3, FiTrash2, FiPackage } from 'react-icons/fi';
-import { useProducts } from '../../context/ProductContext';
+import { useSupabaseProducts } from '../../context/SupabaseProductContext';
 import { categories } from '../../data/categories';
 import ProductModal from '../../components/admin/ProductModal';
 
 const ProductManagement: React.FC = () => {
-  const { state: productState, deleteProduct } = useProducts();
+  const { state: productState, deleteProduct } = useSupabaseProducts();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showModal, setShowModal] = useState(false);
@@ -169,11 +169,12 @@ const ProductManagement: React.FC = () => {
       {/* Product Modal */}
       <ProductModal
         isOpen={showModal}
-        onClose={() => {
+        onClose={() => setShowModal(false)}
+        product={editingProductId ? productState.products.find(p => p.id === editingProductId) : undefined}
+        onSave={() => {
           setShowModal(false);
           setEditingProductId(null);
         }}
-        productId={editingProductId}
       />
     </div>
   );

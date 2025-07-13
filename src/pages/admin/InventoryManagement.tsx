@@ -11,13 +11,14 @@ import {
   FiCheck,
   FiX,
   FiPlus,
-  FiMinus
+  FiMinus,
+  FiSave
 } from 'react-icons/fi';
-import { useProducts } from '../../context/ProductContext';
+import { useSupabaseProducts } from '../../context/SupabaseProductContext';
 import { categories } from '../../data/categories';
 
 const InventoryManagement: React.FC = () => {
-  const { state: productState, updateProduct } = useProducts();
+  const { state: productState, updateProduct } = useSupabaseProducts();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
@@ -416,7 +417,7 @@ const InventoryManagement: React.FC = () => {
                               className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
                               title="Save changes"
                             >
-                              <FiCheck className="w-4 h-4" />
+                              <FiSave className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleStockCancel(product.id)}

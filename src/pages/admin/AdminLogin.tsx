@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiShield } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
+import DebugAuth from '../../debug-auth';
 
 const AdminLogin: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -13,7 +14,7 @@ const AdminLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, state } = useAuth();
+  const { signIn, state } = useSupabaseAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -32,7 +33,7 @@ const AdminLogin: React.FC = () => {
     setError('');
 
     try {
-      const result = await login(formData.email, formData.password);
+      const result = await signIn(formData.email, formData.password);
       
       if (result.success) {
         if (result.requirePasswordChange) {

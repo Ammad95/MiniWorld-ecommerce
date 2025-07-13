@@ -6,6 +6,77 @@ export interface EmailTemplate {
   html: string;
 }
 
+// Simple email sending function (will be replaced with real SMTP)
+const sendEmail = async (to: string, subject: string, html: string, text: string): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  // Check if we're in development or production
+  const isDevelopment = import.meta.env.DEV;
+  const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
+  
+  // In development or if no API key, simulate sending
+  if (isDevelopment || !resendApiKey) {
+    console.log('📧 EMAIL SIMULATION (Development Mode)');
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`HTML Length: ${html.length} characters`);
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Show browser notification
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm';
+    notification.innerHTML = `
+      <div class="font-semibold">📧 Email Sent (Simulated)</div>
+      <div class="text-sm">To: ${to}</div>
+      <div class="text-xs mt-1">Subject: ${subject}</div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 5000);
+    
+    return { success: true, messageId: `sim_${Date.now()}` };
+  }
+
+  // Production: Use Resend API
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `MiniWorld Support Team <support@miniworldpk.com>`,
+        to: [to],
+        subject: subject,
+        html: html,
+        text: text,
+        tags: [
+          { name: 'source', value: 'miniworld' },
+          { name: 'environment', value: 'production' }
+        ]
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('❌ Email API Error:', data);
+      return { success: false, error: data.message || 'Failed to send email' };
+    }
+
+    console.log('✅ Email sent successfully:', data.id);
+    return { success: true, messageId: data.id };
+  } catch (error: any) {
+    console.error('❌ Email sending failed:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 class EmailService {
   private static instance: EmailService;
   private notifications: Array<{
@@ -15,6 +86,9 @@ class EmailService {
     body: string;
     sentAt: Date;
     type: 'order_confirmation' | 'status_update' | 'shipping_notification';
+    status: 'sent' | 'failed';
+    messageId?: string;
+    error?: string;
   }> = [];
 
   static getInstance(): EmailService {
@@ -135,6 +209,9 @@ The MiniWorld Team
   <div class="footer">
     <p>Thank you for choosing MiniWorld!</p>
     <p>Best regards,<br>The MiniWorld Team</p>
+    <p style="font-size: 12px; margin-top: 10px;">
+      📧 support@miniworldpk.com | 🌐 miniworldpk.com
+    </p>
   </div>
 </body>
 </html>
@@ -223,6 +300,9 @@ The MiniWorld Team
   
   <div class="footer">
     <p>Best regards,<br>The MiniWorld Team</p>
+    <p style="font-size: 12px; margin-top: 10px;">
+      📧 support@miniworldpk.com | 🌐 miniworldpk.com
+    </p>
   </div>
 </body>
 </html>
@@ -236,6 +316,7 @@ The MiniWorld Team
       case 'credit_card': return 'Credit Card';
       case 'bank_transfer': return 'Bank Transfer';
       case 'cash_on_delivery': return 'Cash on Delivery';
+      case 'jazzcash': return 'JazzCash';
       default: return method;
     }
   }
@@ -244,8 +325,12 @@ The MiniWorld Team
     try {
       const template = this.generateOrderConfirmationTemplate(order);
       
-      // Simulate email sending
-      await this.simulateEmailSend();
+      const result = await sendEmail(
+        order.shippingAddress.email,
+        template.subject,
+        template.html,
+        template.body
+      );
       
       // Store notification for tracking
       this.notifications.push({
@@ -254,18 +339,25 @@ The MiniWorld Team
         subject: template.subject,
         body: template.body,
         sentAt: new Date(),
-        type: 'order_confirmation'
+        type: 'order_confirmation',
+        status: result.success ? 'sent' : 'failed',
+        messageId: result.messageId,
+        error: result.error
       });
 
-      console.log('📧 Order confirmation email sent:', {
-        to: order.shippingAddress.email,
-        orderNumber: order.orderNumber,
-        subject: template.subject
-      });
+      if (result.success) {
+        console.log('✅ Order confirmation email sent:', {
+          to: order.shippingAddress.email,
+          orderNumber: order.orderNumber,
+          messageId: result.messageId
+        });
+      } else {
+        console.error('❌ Order confirmation email failed:', result.error);
+      }
 
-      return true;
+      return result.success;
     } catch (error) {
-      console.error('Failed to send order confirmation email:', error);
+      console.error('❌ Failed to send order confirmation email:', error);
       return false;
     }
   }
@@ -274,8 +366,12 @@ The MiniWorld Team
     try {
       const template = this.generateStatusUpdateTemplate(order, oldStatus, newStatus);
       
-      // Simulate email sending
-      await this.simulateEmailSend();
+      const result = await sendEmail(
+        order.shippingAddress.email,
+        template.subject,
+        template.html,
+        template.body
+      );
       
       // Store notification for tracking
       this.notifications.push({
@@ -284,26 +380,65 @@ The MiniWorld Team
         subject: template.subject,
         body: template.body,
         sentAt: new Date(),
-        type: 'status_update'
+        type: 'status_update',
+        status: result.success ? 'sent' : 'failed',
+        messageId: result.messageId,
+        error: result.error
       });
 
-      console.log('📧 Status update email sent:', {
-        to: order.shippingAddress.email,
-        orderNumber: order.orderNumber,
-        statusChange: `${oldStatus} → ${newStatus}`,
-        subject: template.subject
-      });
+      if (result.success) {
+        console.log('✅ Status update email sent:', {
+          to: order.shippingAddress.email,
+          orderNumber: order.orderNumber,
+          statusChange: `${oldStatus} → ${newStatus}`,
+          messageId: result.messageId
+        });
+      } else {
+        console.error('❌ Status update email failed:', result.error);
+      }
 
-      return true;
+      return result.success;
     } catch (error) {
-      console.error('Failed to send status update email:', error);
+      console.error('❌ Failed to send status update email:', error);
       return false;
     }
   }
 
-  private async simulateEmailSend(): Promise<void> {
-    // Simulate network delay
-    return new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+  // Test email function
+  async sendTestEmail(to: string): Promise<boolean> {
+    try {
+      const subject = '🧪 Test Email from MiniWorld';
+      const html = `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #1e3a8a 0%, #f97316 100%); color: white; padding: 20px; text-align: center; border-radius: 8px;">
+            <h1>🍼 MiniWorld Email Test</h1>
+          </div>
+          <div style="padding: 20px;">
+            <p>This is a test email to verify your email configuration is working correctly.</p>
+            <p><strong>Time sent:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>From:</strong> support@miniworldpk.com</p>
+            <p style="color: #10b981; font-weight: bold;">✅ Email system is working perfectly!</p>
+          </div>
+          <div style="background: #1e3a8a; color: white; padding: 15px; text-align: center; margin-top: 20px; border-radius: 8px;">
+            <p style="margin: 0;">Best regards,<br>The MiniWorld Team</p>
+          </div>
+        </div>
+      `;
+      const text = `MiniWorld Email Test - This is a test email sent at ${new Date().toLocaleString()}`;
+      
+      const result = await sendEmail(to, subject, html, text);
+      
+      if (result.success) {
+        console.log('✅ Test email sent successfully:', result.messageId);
+      } else {
+        console.error('❌ Test email failed:', result.error);
+      }
+      
+      return result.success;
+    } catch (error) {
+      console.error('❌ Test email error:', error);
+      return false;
+    }
   }
 
   getNotifications() {
@@ -311,11 +446,15 @@ The MiniWorld Team
   }
 
   getNotificationStats() {
-    return {
-      total: this.notifications.length,
-      orderConfirmations: this.notifications.filter(n => n.type === 'order_confirmation').length,
-      statusUpdates: this.notifications.filter(n => n.type === 'status_update').length,
-      lastSent: this.notifications.length > 0 ? this.notifications[0].sentAt : null
+    const total = this.notifications.length;
+    const sent = this.notifications.filter(n => n.status === 'sent').length;
+    const failed = this.notifications.filter(n => n.status === 'failed').length;
+    
+    return { 
+      total, 
+      sent, 
+      failed, 
+      successRate: total > 0 ? (sent / total * 100).toFixed(1) : '0' 
     };
   }
 }

@@ -1,29 +1,29 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { 
-  FiUsers, 
   FiShoppingBag, 
+  FiUsers, 
+  FiDollarSign, 
   FiTrendingUp, 
-  FiDollarSign,
-  FiPlus,
-  FiEdit3,
+  FiEdit,
   FiTrash2,
+  FiPlus,
+  FiSettings,
+  FiLogOut,
+  FiCreditCard,
   FiMail,
   FiPhone,
-  FiCalendar,
-  FiLogOut,
-  FiSettings,
-  FiCreditCard
+  FiCalendar
 } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext';
-import { useProducts } from '../../context/ProductContext';
-import { Link } from 'react-router-dom';
+import { useSupabaseProducts } from '../../context/SupabaseProductContext';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
 import CreateSubAdminModal from '../../components/admin/CreateSubAdminModal';
 import PaymentAccountsModal from '../../components/admin/PaymentAccountsModal';
 
 const AdminDashboard: React.FC = () => {
-  const { state, logout, deleteUser } = useAuth();
-  const { state: productState } = useProducts();
+  const { state: productState } = useSupabaseProducts();
+  const { state, signOut, deleteUser } = useSupabaseAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -31,7 +31,7 @@ const AdminDashboard: React.FC = () => {
   const stats = [
     {
       title: 'Admin Users',
-      value: state.users.length.toString(),
+      value: state.user ? '1' : '0',
       change: '+12%',
       icon: FiUsers,
       color: 'bg-blue-500'
@@ -73,7 +73,13 @@ const AdminDashboard: React.FC = () => {
     });
   };
 
-  const admins = state.users.filter(user => user.role === 'admin');
+  const handleCreateSubAdminSuccess = () => {
+    setShowCreateModal(false);
+    // Refresh data or show success message
+  };
+
+  // TODO: Implement proper user management - for now showing empty array
+  const admins: any[] = [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -96,7 +102,7 @@ const AdminDashboard: React.FC = () => {
               </motion.button>
               
               <motion.button
-                onClick={logout}
+                onClick={signOut}
                 className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -281,7 +287,7 @@ const AdminDashboard: React.FC = () => {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => console.log('Edit user:', admin.id)}
                       >
-                        <FiEdit3 className="w-4 h-4" />
+                        <FiEdit className="w-4 h-4" />
                       </motion.button>
                       
                       <motion.button
@@ -352,6 +358,7 @@ const AdminDashboard: React.FC = () => {
       <CreateSubAdminModal 
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateSubAdminSuccess}
       />
 
       {/* Payment Accounts Modal */}

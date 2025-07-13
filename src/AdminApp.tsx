@@ -1,0 +1,79 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { SupabaseAuthProvider } from './context/SupabaseAuthContext';
+import { SupabaseProductProvider } from './context/SupabaseProductContext';
+import { PaymentProvider } from './context/PaymentContext';
+import { OrderProvider } from './context/OrderContext';
+import AdminLayout from './components/admin/AdminLayout';
+import ProtectedRoute from './components/admin/ProtectedRoute';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ChangePassword from './pages/admin/ChangePassword';
+import ProductManagement from './pages/admin/ProductManagement';
+import InventoryManagement from './pages/admin/InventoryManagement';
+import PaymentAccountsManagement from './pages/admin/PaymentAccountsManagement';
+import OrderManagement from './pages/admin/OrderManagement';
+import DebugAuth from './debug-auth';
+
+function AdminApp() {
+  return (
+    <SupabaseAuthProvider>
+      <SupabaseProductProvider>
+        <PaymentProvider>
+          <OrderProvider>
+            <Routes>
+              {/* Admin Authentication */}
+              <Route path="/login" element={<AdminLogin />} />
+              <Route path="/debug-auth" element={<DebugAuth />} />
+
+              {/* Admin Routes with Layout */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<AdminDashboard />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="orders" element={<OrderManagement />} />
+                <Route path="products" element={<ProductManagement />} />
+                <Route path="inventory" element={<InventoryManagement />} />
+                <Route path="payments" element={<PaymentAccountsManagement />} />
+                <Route path="change-password" element={<ChangePassword />} />
+                
+                {/* Placeholder routes for future features */}
+                <Route path="customers" element={
+                  <div className="p-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Customers Management</h1>
+                    <p className="text-gray-600 mt-2">Coming soon...</p>
+                  </div>
+                } />
+                <Route path="analytics" element={
+                  <div className="p-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+                    <p className="text-gray-600 mt-2">Coming soon...</p>
+                  </div>
+                } />
+                <Route path="communications" element={
+                  <div className="p-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Communications</h1>
+                    <p className="text-gray-600 mt-2">Coming soon...</p>
+                  </div>
+                } />
+                <Route path="settings" element={
+                  <div className="p-8">
+                    <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+                    <p className="text-gray-600 mt-2">Coming soon...</p>
+                  </div>
+                } />
+              </Route>
+
+              {/* Redirect /admin to /admin/ for consistency */}
+              <Route path="*" element={<Navigate to="/admin/" replace />} />
+            </Routes>
+          </OrderProvider>
+        </PaymentProvider>
+      </SupabaseProductProvider>
+    </SupabaseAuthProvider>
+  );
+}
+
+export default AdminApp; 

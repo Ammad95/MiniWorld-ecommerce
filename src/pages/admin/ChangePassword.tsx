@@ -1,25 +1,23 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { FiLock, FiKey, FiEye, FiEyeOff, FiCheck } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext';
+import { FiLock, FiEye, FiEyeOff, FiArrowRight } from 'react-icons/fi';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
 
 const ChangePassword: React.FC = () => {
   const [formData, setFormData] = useState({
-    currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
   const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
+    newPassword: false,
+    confirmPassword: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  const { changePassword, state } = useAuth();
+  const { changePassword, state } = useSupabaseAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +40,7 @@ const ChangePassword: React.FC = () => {
     }
 
     try {
-      const result = await changePassword(formData.currentPassword, formData.newPassword);
+      const result = await changePassword(formData.newPassword);
       
       if (result.success) {
         setSuccess(result.message);
@@ -68,7 +66,7 @@ const ChangePassword: React.FC = () => {
     setSuccess('');
   };
 
-  const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
+  const togglePasswordVisibility = (field: 'newPassword' | 'confirmPassword') => {
     setShowPasswords(prev => ({
       ...prev,
       [field]: !prev[field]
@@ -91,7 +89,7 @@ const ChangePassword: React.FC = () => {
             transition={{ delay: 0.2, type: "spring", stiffness: 500 }}
             className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4"
           >
-            <FiKey className="w-10 h-10 text-white" />
+            <FiArrowRight className="w-10 h-10 text-white" />
           </motion.div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Change Password</h1>
           <p className="text-gray-600">Please change your password to continue</p>
@@ -121,37 +119,10 @@ const ChangePassword: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center space-x-2"
               >
-                <FiCheck className="w-4 h-4" />
+                <FiArrowRight className="w-4 h-4" />
                 <span>{success}</span>
               </motion.div>
             )}
-
-            {/* Current Password */}
-            <div>
-              <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Current Password
-              </label>
-              <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  id="currentPassword"
-                  name="currentPassword"
-                  type={showPasswords.current ? 'text' : 'password'}
-                  required
-                  value={formData.currentPassword}
-                  onChange={handleChange}
-                  className="form-input pl-12 pr-12"
-                  placeholder="Enter current password"
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility('current')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPasswords.current ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
 
             {/* New Password */}
             <div>
@@ -159,11 +130,11 @@ const ChangePassword: React.FC = () => {
                 New Password
               </label>
               <div className="relative">
-                <FiKey className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   id="newPassword"
                   name="newPassword"
-                  type={showPasswords.new ? 'text' : 'password'}
+                  type={showPasswords.newPassword ? 'text' : 'password'}
                   required
                   value={formData.newPassword}
                   onChange={handleChange}
@@ -172,10 +143,10 @@ const ChangePassword: React.FC = () => {
                 />
                 <button
                   type="button"
-                  onClick={() => togglePasswordVisibility('new')}
+                  onClick={() => togglePasswordVisibility('newPassword')}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPasswords.new ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                  {showPasswords.newPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
@@ -187,11 +158,11 @@ const ChangePassword: React.FC = () => {
                 Confirm New Password
               </label>
               <div className="relative">
-                <FiKey className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   id="confirmPassword"
                   name="confirmPassword"
-                  type={showPasswords.confirm ? 'text' : 'password'}
+                  type={showPasswords.confirmPassword ? 'text' : 'password'}
                   required
                   value={formData.confirmPassword}
                   onChange={handleChange}
@@ -200,10 +171,10 @@ const ChangePassword: React.FC = () => {
                 />
                 <button
                   type="button"
-                  onClick={() => togglePasswordVisibility('confirm')}
+                  onClick={() => togglePasswordVisibility('confirmPassword')}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPasswords.confirm ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                  {showPasswords.confirmPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                 </button>
               </div>
             </div>

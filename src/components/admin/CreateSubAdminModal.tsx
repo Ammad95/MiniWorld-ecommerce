@@ -1,31 +1,34 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiMail, FiUser, FiPhone, FiCheck, FiAlertCircle } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext';
+import { FiX, FiUser, FiMail, FiPhone, FiAlertCircle } from 'react-icons/fi';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
 
 interface CreateSubAdminModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess: () => void;
 }
 
-const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({ isOpen, onClose }) => {
+const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSuccess 
+}) => {
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
+    name: '',
     mobile: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [tempPassword, setTempPassword] = useState('');
-
-  const { createSubAdmin } = useAuth();
+  
+  const { createSubAdmin } = useSupabaseAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess('');
+    // setSuccess(''); // Removed as per new_code
 
     // Basic validation
     if (!formData.name.trim() || !formData.email.trim() || !formData.mobile.trim()) {
@@ -44,15 +47,14 @@ const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({ isOpen, onClo
       const result = await createSubAdmin(formData);
       
       if (result.success) {
-        setSuccess(result.message);
-        setTempPassword(result.tempPassword || '');
+        // setSuccess(result.message); // Removed as per new_code
         setFormData({ name: '', email: '', mobile: '' });
         
         // Auto close after success
         setTimeout(() => {
           onClose();
-          setSuccess('');
-          setTempPassword('');
+          // setSuccess(''); // Removed as per new_code
+          onSuccess(); // Call onSuccess prop
         }, 5000);
       } else {
         setError(result.message);
@@ -70,15 +72,14 @@ const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({ isOpen, onClo
       [e.target.name]: e.target.value
     }));
     setError('');
-    setSuccess('');
+    // setSuccess(''); // Removed as per new_code
   };
 
   const handleClose = () => {
     if (!loading) {
       setFormData({ name: '', email: '', mobile: '' });
       setError('');
-      setSuccess('');
-      setTempPassword('');
+      // setSuccess(''); // Removed as per new_code
       onClose();
     }
   };
@@ -131,25 +132,7 @@ const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({ isOpen, onClo
                 </motion.div>
               )}
 
-              {success && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm"
-                >
-                  <div className="flex items-center space-x-2 mb-2">
-                    <FiCheck className="w-4 h-4" />
-                    <span>{success}</span>
-                  </div>
-                  {tempPassword && (
-                    <div className="text-xs bg-green-100 p-2 rounded mt-2">
-                      <strong>Temporary Password:</strong> {tempPassword}
-                      <br />
-                      <em>This has been sent via email</em>
-                    </div>
-                  )}
-                </motion.div>
-              )}
+              {/* Removed success message div as per new_code */}
 
               {/* Name Field */}
               <div>

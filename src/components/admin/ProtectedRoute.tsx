@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,7 +11,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   requireSuperAdmin = false 
 }) => {
-  const { state } = useAuth();
+  const { state } = useSupabaseAuth();
   const location = useLocation();
 
   // Not authenticated - redirect to login
