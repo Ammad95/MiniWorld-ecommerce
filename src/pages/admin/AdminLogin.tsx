@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiShield } from 'react-icons/fi';
 import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
-import DebugAuth from '../../debug-auth';
 
 const AdminLogin: React.FC = () => {
   const [formData, setFormData] = useState({

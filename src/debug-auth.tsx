@@ -16,7 +16,7 @@ const DebugAuth: React.FC = () => {
     try {
       // Test 1: Basic connection
       addResult('🔍 Testing Supabase connection...');
-      const { data, error } = await supabase.from('admin_users').select('count');
+      const { data: _, error } = await supabase.from('admin_users').select('count');
       
       if (error) {
         addResult(`❌ Connection failed: ${error.message}`);
