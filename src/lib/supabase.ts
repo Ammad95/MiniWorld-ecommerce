@@ -1,8 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Environment variables for Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'your-supabase-url';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-supabase-anon-key';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Validate environment variables
+if (!supabaseUrl || supabaseUrl === 'your-supabase-url') {
+  throw new Error('VITE_SUPABASE_URL is not configured. Please set this environment variable in your Netlify dashboard.');
+}
+
+if (!supabaseAnonKey || supabaseAnonKey === 'your-supabase-anon-key') {
+  throw new Error('VITE_SUPABASE_ANON_KEY is not configured. Please set this environment variable in your Netlify dashboard.');
+}
 
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
