@@ -50,7 +50,7 @@ const sendEmail = async (to: string, subject: string, html: string, text: string
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `MiniWorld Support Team <support@miniworldpk.com>`,
+        from: `MiniWorld Support Team <support@minihubpk.com>`,
         to: [to],
         subject: subject,
         html: html,
@@ -210,7 +210,7 @@ The MiniWorld Team
     <p>Thank you for choosing MiniWorld!</p>
     <p>Best regards,<br>The MiniWorld Team</p>
     <p style="font-size: 12px; margin-top: 10px;">
-      📧 support@miniworldpk.com | 🌐 miniworldpk.com
+      📧 support@minihubpk.com | 🌐 minihubpk.com
     </p>
   </div>
 </body>
@@ -301,7 +301,7 @@ The MiniWorld Team
   <div class="footer">
     <p>Best regards,<br>The MiniWorld Team</p>
     <p style="font-size: 12px; margin-top: 10px;">
-      📧 support@miniworldpk.com | 🌐 miniworldpk.com
+      📧 support@minihubpk.com | 🌐 minihubpk.com
     </p>
   </div>
 </body>
@@ -416,7 +416,7 @@ The MiniWorld Team
           <div style="padding: 20px;">
             <p>This is a test email to verify your email configuration is working correctly.</p>
             <p><strong>Time sent:</strong> ${new Date().toLocaleString()}</p>
-            <p><strong>From:</strong> support@miniworldpk.com</p>
+            <p><strong>From:</strong> support@minihubpk.com</p>
             <p style="color: #10b981; font-weight: bold;">✅ Email system is working perfectly!</p>
           </div>
           <div style="background: #1e3a8a; color: white; padding: 15px; text-align: center; margin-top: 20px; border-radius: 8px;">

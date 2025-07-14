@@ -162,7 +162,7 @@ const EmailTestPanel: React.FC = () => {
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600">From Email</span>
             <span className="text-sm font-medium text-gray-900">
-              {import.meta.env.VITE_EMAIL_FROM || 'support@miniworldpk.com'}
+              {import.meta.env.VITE_EMAIL_FROM || 'support@minihubpk.com'}
             </span>
           </div>
           <div className="flex items-center justify-between">

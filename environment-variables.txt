@@ -2,12 +2,12 @@
 # Copy these to your .env file in the root directory
 
 # Supabase Configuration
-VITE_SUPABASE_URL=your-supabase-project-url
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_SUPABASE_URL=https://yddcwkxguxfvvlhbakfh.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZGN3a3hndXhmdnZsaGJha2ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUzNjczOTEsImV4cCI6MjA1MDk0MzM5MX0.r-6EqGYcqGHxXBbQtfvZcmvPCMPyGHXLnVNmJOJGdCA
 
 # Email Configuration (Resend)
-VITE_RESEND_API_KEY=re_your_resend_api_key_here
-VITE_EMAIL_FROM=support@miniworldpk.com
+VITE_RESEND_API_KEY=your_resend_api_key_here
+VITE_EMAIL_FROM=support@minihubpk.com
 VITE_EMAIL_FROM_NAME=MiniWorld Support Team
 
 # Image Storage Configuration
@@ -30,9 +30,11 @@ VITE_EMAIL_FROM_NAME=MiniWorld Support Team
 # VITE_CLOUDFRONT_DOMAIN=your-cloudfront-domain.cloudfront.net
 
 # JazzCash Configuration
-VITE_JAZZCASH_MERCHANT_ID=MW_MERCHANT_001
-VITE_JAZZCASH_PASSWORD=miniworld_password
-VITE_JAZZCASH_HASH_KEY=miniworld_hash_key_12345
+VITE_JAZZCASH_MERCHANT_ID=MC123456
+VITE_JAZZCASH_PASSWORD=password123
+VITE_JAZZCASH_SALT=SampleSalt123
+VITE_JAZZCASH_RETURN_URL=https://miniworldpk.com/jazzcash-success
+VITE_JAZZCASH_CANCEL_URL=https://miniworldpk.com/jazzcash-cancel
 VITE_JAZZCASH_IS_SANDBOX=true
 
 # App Configuration
