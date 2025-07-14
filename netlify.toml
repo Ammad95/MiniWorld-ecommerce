@@ -9,6 +9,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL"
+  SECRETS_SCAN_OMIT_PATHS = "*.md,*.txt,public/debug.html,dist/debug.html"
 
 [[headers]]
   for = "/*"
