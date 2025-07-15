@@ -60,10 +60,6 @@ const Footer: React.FC = () => {
           <div className="space-y-6">
             <div className="flex items-center space-x-3">
               <Logo />
-              <div>
-                <h3 className="text-xl font-bold text-white">MiniHub</h3>
-                <p className="text-sm text-violet-200">Baby essentials</p>
-              </div>
             </div>
             <p className="text-white/90 leading-relaxed">
               Premium baby products designed with care, crafted for comfort, and built to last. 
@@ -154,18 +150,18 @@ const Footer: React.FC = () => {
             <div className="mt-6">
               <h5 className="text-sm font-semibold text-white mb-3">Stay Updated</h5>
               <form onSubmit={handleSubscribe} className="space-y-2">
-                <div className="flex">
+                <div className="flex gap-2">
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
-                    className="flex-1 px-4 py-2 bg-white/20 border border-white/30 rounded-l-lg focus:outline-none focus:border-white/50 text-white placeholder-white/60 backdrop-blur-sm"
+                    className="flex-1 px-4 py-2 bg-white/20 border border-white/30 rounded-lg focus:outline-none focus:border-white/50 text-white placeholder-white/60 backdrop-blur-sm"
                     disabled={isSubscribing}
                   />
                   <motion.button
                     type="submit"
-                    className="px-6 py-2 btn-primary rounded-r-lg rounded-l-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2 btn-primary rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     whileHover={!isSubscribing ? { scale: 1.02 } : {}}
                     whileTap={!isSubscribing ? { scale: 0.98 } : {}}
                     disabled={isSubscribing}
