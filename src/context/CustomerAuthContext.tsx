@@ -53,36 +53,66 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
   useEffect(() => {
     const initAuth = async () => {
       try {
+        setState(prev => ({ ...prev, isLoading: true }));
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
+          console.log('Customer session found, getting customer profile...');
           const customerData = await getCustomerProfile(session.user.id);
           if (customerData) {
             setState(prev => ({
               ...prev,
               customer: customerData,
-              isAuthenticated: true
+              isAuthenticated: true,
+              isLoading: false
+            }));
+          } else {
+            console.log('Customer profile not found or failed to create');
+            setState(prev => ({
+              ...prev,
+              customer: null,
+              isAuthenticated: false,
+              isLoading: false
             }));
           }
+        } else {
+          console.log('No customer session found');
+          setState(prev => ({
+            ...prev,
+            customer: null,
+            isAuthenticated: false,
+            isLoading: false
+          }));
         }
       } catch (error) {
-        console.error('Error during auth initialization:', error);
+        console.error('Error during customer auth initialization:', error);
+        setState(prev => ({
+          ...prev,
+          customer: null,
+          isAuthenticated: false,
+          isLoading: false
+        }));
       }
     };
 
     initAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const customerData = await getCustomerProfile(session.user.id);
-        setState(prev => ({
-          ...prev,
-          customer: customerData,
-          isAuthenticated: !!customerData,
-          isLoading: false
-        }));
-      } else {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Customer auth state changed:', event, session?.user?.email);
+      
+      // Only process auth changes for customer-related events
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session?.user) {
+          const customerData = await getCustomerProfile(session.user.id);
+          setState(prev => ({
+            ...prev,
+            customer: customerData,
+            isAuthenticated: !!customerData,
+            isLoading: false
+          }));
+        }
+      } else if (event === 'SIGNED_OUT') {
         setState({
           customer: null,
           isAuthenticated: false,
@@ -90,6 +120,7 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
           error: null
         });
       }
+      // Don't reset state for other events like navigation
     });
 
     return () => subscription.unsubscribe();
@@ -105,6 +136,41 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       if (error) {
         console.error('Error fetching customer profile:', error);
+        
+        // If customer profile doesn't exist, create it from Supabase Auth user data
+        if (error.code === 'PGRST116' || error.message.includes('No rows found')) {
+          console.log('Customer profile not found, creating from auth data...');
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user) {
+            const newCustomerData = {
+              id: user.id,
+              email: user.email!,
+              name: user.user_metadata?.name || user.email!.split('@')[0],
+              mobile: user.user_metadata?.mobile || '',
+              addresses: [],
+              is_verified: user.email_confirmed_at ? true : false
+            };
+
+            const { data: insertedCustomer, error: insertError } = await supabase
+              .from('customers')
+              .insert(newCustomerData)
+              .select()
+              .single();
+
+            if (!insertError && insertedCustomer) {
+              return {
+                id: insertedCustomer.id,
+                email: insertedCustomer.email,
+                firstName: insertedCustomer.name.split(' ')[0] || '',
+                lastName: insertedCustomer.name.split(' ').slice(1).join(' ') || '',
+                phone: insertedCustomer.mobile,
+                createdAt: new Date(insertedCustomer.created_at),
+                lastLogin: new Date()
+              };
+            }
+          }
+        }
         return null;
       }
 

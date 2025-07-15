@@ -20,6 +20,7 @@ import ForgotPassword from './pages/customer/ForgotPassword';
 import ResetPassword from './pages/customer/ResetPassword';
 import JazzCashSuccess from './pages/JazzCashSuccess';
 import JazzCashCancel from './pages/JazzCashCancel';
+import CustomerAuthDebug from './components/CustomerAuthDebug';
 
 // Lazy load the entire Admin application
 const AdminApp = lazy(() => import('./AdminApp'));
@@ -73,6 +74,9 @@ function App() {
                     </Suspense>
                   } />
                 </Routes>
+                
+                {/* Debug component for development */}
+                <CustomerAuthDebug />
               </Router>
             </CartProvider>
           </OrderProvider>
