@@ -2,30 +2,25 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
-  FiShoppingCart, 
   FiHeart, 
   FiStar,
   FiTruck,
-  FiShield,
-  FiHeadphones,
-  FiRefreshCw,
-  FiGift
+  FiArrowRight
 } from 'react-icons/fi';
-import { useCart } from '../context/CartContext';
 import { useSupabaseProducts } from '../context/SupabaseProductContext';
 import ProductCard from '../components/products/ProductCard';
 import { categories } from '../data/categories';
+import { Product } from '../types';
 import emailService from '../services/EmailService';
 
 const Home: React.FC = () => {
-  const { addItem } = useCart();
-  const { products } = useSupabaseProducts();
+  const { state } = useSupabaseProducts();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = useState('');
 
   // Get featured products (first 6 products)
-  const featuredProducts = products.slice(0, 6);
+  const featuredProducts = state.products.slice(0, 6);
 
   const handleNewsletterSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,7 +225,7 @@ const Home: React.FC = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {featuredProducts.map((product, index) => (
+            {featuredProducts.map((product: Product, index) => (
               <motion.div
                 key={product.id}
                 initial={{ opacity: 0, y: 30 }}
