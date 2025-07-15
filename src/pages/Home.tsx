@@ -264,7 +264,7 @@ const Home: React.FC = () => {
                 className="flex-1 px-4 py-3 rounded-lg border-0 focus:ring-4 focus:ring-white/20 outline-none"
               />
               <motion.button
-                className="bg-white text-deepPurple-700 font-medium px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                className="btn-primary"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
