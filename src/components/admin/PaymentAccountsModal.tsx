@@ -144,7 +144,7 @@ const PaymentAccountsModal: React.FC<PaymentAccountsModalProps> = ({ isOpen, onC
                         value={formData.accountName}
                         onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
                         className="w-full px-3 py-2 border border-navy-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        placeholder="e.g., MiniWorld Business Account"
+                        placeholder="e.g., MiniHub Business Account"
                         required
                       />
                     </div>

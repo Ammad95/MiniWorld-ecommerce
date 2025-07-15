@@ -141,7 +141,7 @@ const AdminLayout: React.FC = () => {
               className="flex flex-col"
             >
               <span className="font-semibold text-gray-900">{state.user?.name || 'Admin'}</span>
-              <span className="text-sm text-gray-600">{state.user?.email || 'admin@miniworld.com'}</span>
+              <span className="text-sm text-gray-600">{state.user?.email || 'admin@minihubpk.com'}</span>
             </motion.div>
           )}
         </div>

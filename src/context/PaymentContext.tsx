@@ -25,7 +25,7 @@ const initialState: PaymentState = {
     // Bank Transfer Account
     {
       id: '1',
-      accountName: 'MiniWorld Business Account',
+      accountName: 'MiniHub Business Account',
       accountNumber: '1234567890',
       bankName: 'First National Bank',
       paymentMethodType: 'bank_transfer',
@@ -40,7 +40,7 @@ const initialState: PaymentState = {
     // JazzCash Account
     {
       id: '2',
-      accountName: 'MiniWorld JazzCash Business',
+      accountName: 'MiniHub JazzCash Business',
       accountNumber: 'JC789012',
       bankName: 'JazzCash Pakistan',
       paymentMethodType: 'jazzcash',
@@ -56,7 +56,7 @@ const initialState: PaymentState = {
     // EasyPaisa Account
     {
       id: '3',
-      accountName: 'MiniWorld EasyPaisa Store',
+      accountName: 'MiniHub EasyPaisa Store',
       accountNumber: 'EP345678',
       bankName: 'EasyPaisa by Telenor',
       paymentMethodType: 'easypaisa',
@@ -72,7 +72,7 @@ const initialState: PaymentState = {
     // Secondary Bank Account (Inactive for demo)
     {
       id: '4',
-      accountName: 'MiniWorld Savings Account',
+      accountName: 'MiniHub Savings Account',
       accountNumber: '9876543210',
       bankName: 'Allied Bank Limited',
       paymentMethodType: 'bank_transfer',

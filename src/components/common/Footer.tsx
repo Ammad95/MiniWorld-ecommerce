@@ -31,7 +31,7 @@ const Footer: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">MiniWorld</h3>
+                <h3 className="text-xl font-bold text-white">MiniHub</h3>
                 <p className="text-sm text-violet-200">Baby essentials</p>
               </div>
             </div>
@@ -122,7 +122,7 @@ const Footer: React.FC = () => {
             <div className="space-y-3">
               <div className="flex items-center space-x-3 text-white/90">
                 <FiMail className="w-5 h-5 flex-shrink-0" />
-                <span>support@miniworld.com</span>
+                <span>support@minihubpk.com</span>
               </div>
               <div className="flex items-center space-x-3 text-white/90">
                 <FiPhone className="w-5 h-5 flex-shrink-0" />
@@ -161,7 +161,7 @@ const Footer: React.FC = () => {
         <div className="container mx-auto container-padding py-6">
           <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
             <div className="flex items-center space-x-4 text-white/70 text-sm">
-              <span>© 2024 MiniWorld. All rights reserved.</span>
+              <span>© 2024 MiniHub. All rights reserved.</span>
               <span>•</span>
               <Link to="/privacy" className="hover:text-white transition-colors duration-200">
                 Privacy Policy

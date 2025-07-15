@@ -50,7 +50,7 @@ const sendEmail = async (to: string, subject: string, html: string, text: string
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `MiniWorld Support Team <support@minihubpk.com>`,
+        from: `MiniHub Support Team <support@minihubpk.com>`,
         to: [to],
         subject: subject,
         html: html,
@@ -136,7 +136,7 @@ You can track your order status at any time by visiting your account dashboard.
 Thank you for choosing MiniWorld!
 
 Best regards,
-The MiniWorld Team
+The MiniHub Team
     `;
 
     const html = `
@@ -208,7 +208,7 @@ The MiniWorld Team
   
   <div class="footer">
     <p>Thank you for choosing MiniWorld!</p>
-    <p>Best regards,<br>The MiniWorld Team</p>
+    <p>Best regards,<br>The MiniHub Team</p>
     <p style="font-size: 12px; margin-top: 10px;">
       📧 support@minihubpk.com | 🌐 minihubpk.com
     </p>
@@ -256,7 +256,7 @@ ${newStatus === 'delivered' ?
 You can always check your order status in your account dashboard.
 
 Best regards,
-The MiniWorld Team
+The MiniHub Team
     `;
 
     const html = `
@@ -299,7 +299,7 @@ The MiniWorld Team
   </div>
   
   <div class="footer">
-    <p>Best regards,<br>The MiniWorld Team</p>
+    <p>Best regards,<br>The MiniHub Team</p>
     <p style="font-size: 12px; margin-top: 10px;">
       📧 support@minihubpk.com | 🌐 minihubpk.com
     </p>
@@ -420,7 +420,7 @@ The MiniWorld Team
             <p style="color: #10b981; font-weight: bold;">✅ Email system is working perfectly!</p>
           </div>
           <div style="background: #1e3a8a; color: white; padding: 15px; text-align: center; margin-top: 20px; border-radius: 8px;">
-            <p style="margin: 0;">Best regards,<br>The MiniWorld Team</p>
+            <p style="margin: 0;">Best regards,<br>The MiniHub Team</p>
           </div>
         </div>
       `;

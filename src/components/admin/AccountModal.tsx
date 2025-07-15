@@ -204,7 +204,7 @@ const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, accountId 
               value={formData.accountName}
               onChange={(e) => setFormData(prev => ({ ...prev, accountName: e.target.value }))}
               className={`form-input ${errors.accountName ? 'border-red-500' : ''}`}
-              placeholder="e.g., MiniWorld Business Account"
+              placeholder="e.g., MiniHub Business Account"
             />
             {errors.accountName && (
               <p className="text-red-500 text-xs mt-1">{errors.accountName}</p>

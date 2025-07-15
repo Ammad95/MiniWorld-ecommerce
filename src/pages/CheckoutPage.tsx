@@ -88,7 +88,7 @@ const CheckoutPage: React.FC = () => {
         const jazzCashRequest = {
           amount: total,
           billReference: orderNumber,
-          description: `MiniWorld Order - ${cartState.items.length} item(s)`,
+          description: `MiniHub Order - ${cartState.items.length} item(s)`,
           currency: 'PKR',
           customerInfo: jazzCashInfo,
           shippingAddress: shippingAddress,
@@ -475,7 +475,7 @@ const CheckoutPage: React.FC = () => {
                             <li>1. You'll be redirected to JazzCash secure payment page</li>
                             <li>2. Enter your JazzCash PIN or mobile banking credentials</li>
                             <li>3. Confirm the payment amount and merchant details</li>
-                            <li>4. Complete the transaction and return to MiniWorld</li>
+                            <li>4. Complete the transaction and return to MiniHub</li>
                           </ol>
                         </div>
                       </div>

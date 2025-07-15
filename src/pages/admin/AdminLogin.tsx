@@ -77,7 +77,7 @@ const AdminLogin: React.FC = () => {
             <FiShield className="w-10 h-10 text-white" />
           </motion.div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Portal</h1>
-          <p className="text-gray-600">MiniWorld Administration</p>
+          <p className="text-gray-600">MiniHub Administration</p>
         </div>
 
         {/* Login Form */}
@@ -187,7 +187,7 @@ const AdminLogin: React.FC = () => {
           className="text-center mt-8"
         >
           <p className="text-sm text-gray-500">
-            © 2024 MiniWorld. All rights reserved.
+            © 2024 MiniHub. All rights reserved.
           </p>
         </motion.div>
       </motion.div>

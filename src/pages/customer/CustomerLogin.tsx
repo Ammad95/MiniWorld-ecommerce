@@ -44,7 +44,7 @@ const CustomerLogin: React.FC = () => {
             <FiUser className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-deepPurple-900 mb-2">Welcome Back</h1>
-          <p className="text-deepPurple-600">Sign in to your MiniWorld account</p>
+          <p className="text-deepPurple-600">Sign in to your MiniHub account</p>
         </div>
 
         {/* Error Message */}

@@ -228,11 +228,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
     
     // Send email
-    const emailSubject = 'Admin Access - MiniWorld';
+    const emailSubject = 'Admin Access - MiniHub';
     const emailBody = `
 Hello ${userData.name},
 
-You have been granted admin access to MiniWorld.
+You have been granted admin access to MiniHub.
 
 Your temporary login credentials:
 Email: ${userData.email}
@@ -243,7 +243,7 @@ Please log in and change your password immediately for security.
 Login URL: ${window.location.origin}/admin
 
 Best regards,
-MiniWorld Team
+MiniHub Team
     `;
     
     await sendEmail(userData.email, emailSubject, emailBody);

@@ -107,7 +107,7 @@ const CustomerRegister: React.FC = () => {
             <FiUser className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-deepPurple-900 mb-2">Create Account</h1>
-          <p className="text-deepPurple-600">Join MiniWorld for the best baby products</p>
+          <p className="text-deepPurple-600">Join MiniHub for the best baby products</p>
         </div>
 
         {/* Error Messages */}
