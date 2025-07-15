@@ -1,14 +1,64 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiStar, FiTruck, FiHeart } from 'react-icons/fi';
-import { categories } from '../data/categories';
+import { 
+  FiShoppingCart, 
+  FiHeart, 
+  FiStar,
+  FiTruck,
+  FiShield,
+  FiHeadphones,
+  FiRefreshCw,
+  FiGift
+} from 'react-icons/fi';
+import { useCart } from '../context/CartContext';
 import { useSupabaseProducts } from '../context/SupabaseProductContext';
 import ProductCard from '../components/products/ProductCard';
+import { categories } from '../data/categories';
+import emailService from '../services/EmailService';
 
 const Home: React.FC = () => {
-  const { state: productState } = useSupabaseProducts();
-  const featuredProducts = productState.products.filter(product => product.isFeatured);
+  const { addItem } = useCart();
+  const { products } = useSupabaseProducts();
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [subscriptionMessage, setSubscriptionMessage] = useState('');
+
+  // Get featured products (first 6 products)
+  const featuredProducts = products.slice(0, 6);
+
+  const handleNewsletterSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newsletterEmail.trim()) {
+      setSubscriptionMessage('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubscribing(true);
+    setSubscriptionMessage('');
+
+    try {
+      const success = await emailService.sendNewsletterConfirmation(newsletterEmail);
+      
+      if (success) {
+        setSubscriptionMessage('🎉 Successfully subscribed! Check your email for confirmation.');
+        setNewsletterEmail('');
+      } else {
+        setSubscriptionMessage('❌ Subscription failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      setSubscriptionMessage('❌ Something went wrong. Please try again.');
+    } finally {
+      setIsSubscribing(false);
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setSubscriptionMessage('');
+      }, 5000);
+    }
+  };
 
   // Custom images for specific categories
   const getBackgroundImage = (categoryId: string, index: number) => {
@@ -252,24 +302,41 @@ const Home: React.FC = () => {
             </p>
             
             <motion.div
-              className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto"
+              className="space-y-4 max-w-md mx-auto"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               viewport={{ once: true }}
             >
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-lg border-0 focus:ring-4 focus:ring-white/20 outline-none"
-              />
-              <motion.button
-                className="btn-primary"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Subscribe
-              </motion.button>
+              <form onSubmit={handleNewsletterSubscribe} className="flex flex-col sm:flex-row gap-4">
+                <input
+                  type="email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="flex-1 px-4 py-3 rounded-lg border-0 focus:ring-4 focus:ring-white/20 outline-none"
+                  disabled={isSubscribing}
+                />
+                <motion.button
+                  type="submit"
+                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={!isSubscribing ? { scale: 1.05 } : {}}
+                  whileTap={!isSubscribing ? { scale: 0.95 } : {}}
+                  disabled={isSubscribing}
+                >
+                  {isSubscribing ? 'Subscribing...' : 'Subscribe'}
+                </motion.button>
+              </form>
+              {subscriptionMessage && (
+                <motion.p 
+                  className={`text-sm ${subscriptionMessage.includes('🎉') ? 'text-green-300' : 'text-red-300'}`}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {subscriptionMessage}
+                </motion.p>
+              )}
             </motion.div>
           </motion.div>
         </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
@@ -6,13 +6,51 @@ import {
   FiPhone, 
   FiMapPin, 
   FiFacebook, 
-  FiTwitter, 
   FiInstagram,
   FiHeart
 } from 'react-icons/fi';
 import { categories } from '../../data/categories';
+import Logo from './Logo';
+import emailService from '../../services/EmailService';
 
 const Footer: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [subscriptionMessage, setSubscriptionMessage] = useState('');
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      setSubscriptionMessage('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubscribing(true);
+    setSubscriptionMessage('');
+
+    try {
+      const success = await emailService.sendNewsletterConfirmation(email);
+      
+      if (success) {
+        setSubscriptionMessage('🎉 Successfully subscribed! Check your email for confirmation.');
+        setEmail('');
+      } else {
+        setSubscriptionMessage('❌ Subscription failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      setSubscriptionMessage('❌ Something went wrong. Please try again.');
+    } finally {
+      setIsSubscribing(false);
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setSubscriptionMessage('');
+      }, 5000);
+    }
+  };
+
   return (
     <footer className="gradient-deep-purple text-white">
       {/* Main Footer Content */}
@@ -21,15 +59,7 @@ const Footer: React.FC = () => {
           {/* Brand Section */}
           <div className="space-y-6">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="9" cy="6" r="3" fill="#581c87"/>
-                  <path d="M9 10c-2.5 0-4.5 2-4.5 4.5V20h9v-5.5c0-2.5-2-4.5-4.5-4.5z" fill="#581c87"/>
-                  <circle cx="17" cy="8" r="2" fill="#a855f7"/>
-                  <path d="M17 11c-1.5 0-2.5 1-2.5 2.5V17h5v-3.5c0-1.5-1-2.5-2.5-2.5z" fill="#a855f7"/>
-                  <path d="M12.5 9c-.3 0-.5.2-.5.5 0 .8.7 1.5 1.5 1.5s1.5-.7 1.5-1.5c0-.3-.2-.5-.5-.5-.3 0-.5.2-.5.5 0 .3-.2.5-.5.5s-.5-.2-.5-.5c0-.3-.2-.5-.5-.5z" fill="#c084fc"/>
-                </svg>
-              </div>
+              <Logo />
               <div>
                 <h3 className="text-xl font-bold text-white">MiniHub</h3>
                 <p className="text-sm text-violet-200">Baby essentials</p>
@@ -41,7 +71,9 @@ const Footer: React.FC = () => {
             </p>
             <div className="flex space-x-4">
               <motion.a 
-                href="#" 
+                href="https://facebook.com/minihubpk" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors duration-200 backdrop-blur-sm"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -49,15 +81,9 @@ const Footer: React.FC = () => {
                 <FiFacebook className="w-5 h-5" />
               </motion.a>
               <motion.a 
-                href="#" 
-                className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors duration-200 backdrop-blur-sm"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FiTwitter className="w-5 h-5" />
-              </motion.a>
-              <motion.a 
-                href="#" 
+                href="https://instagram.com/minihubpk" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors duration-200 backdrop-blur-sm"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -89,16 +115,6 @@ const Footer: React.FC = () => {
             <h4 className="text-lg font-semibold text-white">Customer Service</h4>
             <nav className="space-y-3">
               <motion.div whileHover={{ x: 4 }}>
-                <Link to="/help" className="block text-white/80 hover:text-white transition-colors duration-200">
-                  Help Center
-                </Link>
-              </motion.div>
-              <motion.div whileHover={{ x: 4 }}>
-                <Link to="/shipping" className="block text-white/80 hover:text-white transition-colors duration-200">
-                  Shipping Info
-                </Link>
-              </motion.div>
-              <motion.div whileHover={{ x: 4 }}>
                 <Link to="/returns" className="block text-white/80 hover:text-white transition-colors duration-200">
                   Returns & Exchanges
                 </Link>
@@ -126,31 +142,48 @@ const Footer: React.FC = () => {
               </div>
               <div className="flex items-center space-x-3 text-white/90">
                 <FiPhone className="w-5 h-5 flex-shrink-0" />
-                <span>1-800-MINI-WORLD</span>
+                <span>+923364599579</span>
               </div>
               <div className="flex items-center space-x-3 text-white/90">
                 <FiMapPin className="w-5 h-5 flex-shrink-0" />
-                <span>123 Baby Street, Care City, CC 12345</span>
+                <span>We do not have any physical shop yet</span>
               </div>
             </div>
 
             {/* Newsletter Signup */}
             <div className="mt-6">
               <h5 className="text-sm font-semibold text-white mb-3">Stay Updated</h5>
-              <div className="flex">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 px-4 py-2 bg-white/20 border border-white/30 rounded-l-lg focus:outline-none focus:border-white/50 text-white placeholder-white/60 backdrop-blur-sm"
-                />
-                <motion.button
-                  className="px-6 py-2 bg-gradient-to-r from-deepPurple-500 to-violet-600 text-white font-medium rounded-r-lg hover:from-deepPurple-600 hover:to-violet-700 transition-all duration-200 shadow-lg"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Subscribe
-                </motion.button>
-              </div>
+              <form onSubmit={handleSubscribe} className="space-y-2">
+                <div className="flex">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="flex-1 px-4 py-2 bg-white/20 border border-white/30 rounded-l-lg focus:outline-none focus:border-white/50 text-white placeholder-white/60 backdrop-blur-sm"
+                    disabled={isSubscribing}
+                  />
+                  <motion.button
+                    type="submit"
+                    className="px-6 py-2 btn-primary rounded-r-lg rounded-l-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    whileHover={!isSubscribing ? { scale: 1.02 } : {}}
+                    whileTap={!isSubscribing ? { scale: 0.98 } : {}}
+                    disabled={isSubscribing}
+                  >
+                    {isSubscribing ? 'Subscribing...' : 'Subscribe'}
+                  </motion.button>
+                </div>
+                {subscriptionMessage && (
+                  <motion.p 
+                    className={`text-sm ${subscriptionMessage.includes('🎉') ? 'text-green-300' : 'text-red-300'}`}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {subscriptionMessage}
+                  </motion.p>
+                )}
+              </form>
             </div>
           </div>
         </div>

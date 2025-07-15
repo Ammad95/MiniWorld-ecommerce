@@ -441,6 +441,142 @@ The MiniHub Team
     }
   }
 
+  // Newsletter subscription confirmation
+  async sendNewsletterConfirmation(email: string): Promise<boolean> {
+    try {
+      const subject = '🎉 Welcome to MiniHub Newsletter!';
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #1e3a8a; margin: 0; padding: 0; }
+            .header { background: linear-gradient(135deg, #1e3a8a 0%, #f97316 100%); color: white; padding: 30px; text-align: center; }
+            .content { padding: 30px; background: #f8fafc; }
+            .welcome-box { background: white; padding: 25px; border-radius: 12px; margin: 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .benefits { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; }
+            .benefit-item { display: flex; align-items: center; margin: 10px 0; }
+            .footer { background: #1e3a8a; color: white; padding: 25px; text-align: center; margin-top: 30px; }
+            .unsubscribe { font-size: 12px; color: #6b7280; margin-top: 20px; }
+            .logo { display: inline-block; margin-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">
+              <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 15px; display: inline-flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+                <div style="background: white; color: #6366f1; font-weight: bold; font-size: 20px; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">Mi</div>
+              </div>
+            </div>
+            <h1 style="margin: 10px 0;">Welcome to MiniHub!</h1>
+            <p style="font-size: 18px; margin: 0;">Your subscription to our newsletter is confirmed</p>
+          </div>
+          
+          <div class="content">
+            <div class="welcome-box">
+              <h2 style="color: #f97316; margin-top: 0;">🎉 Thank you for subscribing!</h2>
+              <p>Welcome to the MiniHub family! You've successfully subscribed to our newsletter and will now receive:</p>
+              
+              <div class="benefits">
+                <div class="benefit-item">
+                  <span style="color: #10b981; font-size: 18px; margin-right: 10px;">✨</span>
+                  <span>Exclusive early access to new baby products</span>
+                </div>
+                <div class="benefit-item">
+                  <span style="color: #10b981; font-size: 18px; margin-right: 10px;">🎁</span>
+                  <span>Special offers and discounts just for subscribers</span>
+                </div>
+                <div class="benefit-item">
+                  <span style="color: #10b981; font-size: 18px; margin-right: 10px;">📚</span>
+                  <span>Expert tips and advice for your little one</span>
+                </div>
+                <div class="benefit-item">
+                  <span style="color: #10b981; font-size: 18px; margin-right: 10px;">🚚</span>
+                  <span>Free shipping updates and promotions</span>
+                </div>
+              </div>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://minihubpk.com" style="display: inline-block; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Start Shopping Now
+              </a>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: center;">
+              <h3 style="color: #1e3a8a; margin-top: 0;">What's next?</h3>
+              <p>Browse our collection of premium baby products designed with care and crafted for comfort. From newborn essentials to toddler favorites, we have everything your little one needs.</p>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p><strong>Thank you for choosing MiniHub!</strong></p>
+            <p>Premium baby products for your little one's bright future</p>
+            <div style="margin: 15px 0;">
+              <a href="https://facebook.com/minihubpk" style="color: white; margin: 0 10px; text-decoration: none;">Facebook</a>
+              <a href="https://instagram.com/minihubpk" style="color: white; margin: 0 10px; text-decoration: none;">Instagram</a>
+            </div>
+            <p style="font-size: 12px; margin-top: 20px;">
+              📧 support@minihubpk.com | 📞 +923364599579<br>
+              🌐 minihubpk.com
+            </p>
+            <div class="unsubscribe">
+              <p>You received this email because you subscribed to MiniHub newsletter.<br>
+              If you no longer wish to receive these emails, you can unsubscribe at any time.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      const text = `
+Welcome to MiniHub Newsletter!
+
+Thank you for subscribing to our newsletter! You'll now receive:
+- Exclusive early access to new baby products
+- Special offers and discounts just for subscribers
+- Expert tips and advice for your little one
+- Free shipping updates and promotions
+
+Visit us at minihubpk.com to start shopping.
+
+Contact us: support@minihubpk.com | +923364599579
+
+Best regards,
+The MiniHub Team
+      `;
+      
+      const result = await sendEmail(email, subject, html, text);
+      
+      // Store notification for tracking
+      this.notifications.push({
+        id: Date.now().toString(),
+        to: email,
+        subject: subject,
+        body: text,
+        sentAt: new Date(),
+        type: 'newsletter_confirmation' as any,
+        status: result.success ? 'sent' : 'failed',
+        messageId: result.messageId,
+        error: result.error
+      });
+      
+      if (result.success) {
+        console.log('✅ Newsletter confirmation email sent:', {
+          to: email,
+          messageId: result.messageId
+        });
+      } else {
+        console.error('❌ Newsletter confirmation email failed:', result.error);
+      }
+      
+      return result.success;
+    } catch (error) {
+      console.error('❌ Failed to send newsletter confirmation email:', error);
+      return false;
+    }
+  }
+
   getNotifications() {
     return this.notifications.sort((a, b) => b.sentAt.getTime() - a.sentAt.getTime());
   }
