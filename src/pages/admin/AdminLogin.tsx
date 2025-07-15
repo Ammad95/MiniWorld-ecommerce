@@ -163,20 +163,6 @@ const AdminLogin: React.FC = () => {
               )}
             </motion.button>
           </form>
-
-          {/* Demo Credentials */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-6 p-4 bg-gray-50 rounded-lg border"
-          >
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</h3>
-            <div className="text-sm text-gray-600 space-y-1">
-              <div><strong>Email:</strong> ammad_777@hotmail.com</div>
-              <div><strong>Password:</strong> MyMW@123</div>
-            </div>
-          </motion.div>
         </motion.div>
 
         {/* Footer */}
