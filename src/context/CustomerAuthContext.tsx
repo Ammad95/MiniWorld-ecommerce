@@ -73,7 +73,7 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     initAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const customerData = await getCustomerProfile(session.user.id);
         setState(prev => ({
@@ -294,7 +294,7 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const resetPassword = async (email: string, resetCode: string, newPassword: string): Promise<boolean> => {
+  const resetPassword = async (_email: string, _resetCode: string, newPassword: string): Promise<boolean> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
