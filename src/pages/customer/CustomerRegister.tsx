@@ -271,13 +271,7 @@ const CustomerRegister: React.FC = () => {
           </motion.button>
         </form>
 
-        {/* Demo Info */}
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Demo Mode</h4>
-          <p className="text-sm text-blue-700">
-            This registration creates a demo account. All data will be stored locally.
-          </p>
-        </div>
+
 
         {/* Login Link */}
         <div className="mt-8 text-center">

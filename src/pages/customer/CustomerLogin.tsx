@@ -143,15 +143,7 @@ const CustomerLogin: React.FC = () => {
           </motion.button>
         </form>
 
-        {/* Demo Account Info */}
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Demo Account</h4>
-          <p className="text-sm text-blue-700 mb-2">Use these credentials to test:</p>
-          <div className="text-xs text-blue-600 space-y-1">
-            <div>Email: john.doe@example.com</div>
-            <div>Password: password123</div>
-          </div>
-        </div>
+
 
         {/* Register Link */}
         <div className="mt-8 text-center">

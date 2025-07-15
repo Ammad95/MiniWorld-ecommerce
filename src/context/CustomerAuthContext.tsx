@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
 
 export interface Customer {
   id: string;
@@ -38,30 +39,6 @@ interface RegisterData {
 
 const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(undefined);
 
-// Simulated customer database
-const customers: Array<Customer & { password: string; resetCode?: string; resetCodeExpiry?: Date }> = [
-  {
-    id: '1',
-    email: 'john.doe@example.com',
-    password: 'password123',
-    firstName: 'John',
-    lastName: 'Doe',
-    phone: '+1234567890',
-    createdAt: new Date('2024-01-15'),
-    lastLogin: new Date()
-  },
-  {
-    id: '2',
-    email: 'jane.smith@example.com',
-    password: 'password123',
-    firstName: 'Jane',
-    lastName: 'Smith',
-    phone: '+1987654321',
-    createdAt: new Date('2024-02-20'),
-    lastLogin: new Date()
-  }
-];
-
 const initialState: CustomerAuthState = {
   customer: null,
   isAuthenticated: false,
@@ -74,74 +51,117 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   // Check for existing session on mount
   useEffect(() => {
-    const savedCustomer = localStorage.getItem('customer');
-    if (savedCustomer) {
+    const initAuth = async () => {
       try {
-        const customer = JSON.parse(savedCustomer);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          const customerData = await getCustomerProfile(session.user.id);
+          if (customerData) {
+            setState(prev => ({
+              ...prev,
+              customer: customerData,
+              isAuthenticated: true
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error during auth initialization:', error);
+      }
+    };
+
+    initAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const customerData = await getCustomerProfile(session.user.id);
         setState(prev => ({
           ...prev,
-          customer,
-          isAuthenticated: true
+          customer: customerData,
+          isAuthenticated: !!customerData,
+          isLoading: false
         }));
-      } catch (error) {
-        localStorage.removeItem('customer');
+      } else {
+        setState({
+          customer: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null
+        });
       }
-    }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const getCustomerProfile = async (userId: string): Promise<Customer | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching customer profile:', error);
+        return null;
+      }
+
+      return {
+        id: data.id,
+        email: data.email,
+        firstName: data.name.split(' ')[0] || '',
+        lastName: data.name.split(' ').slice(1).join(' ') || '',
+        phone: data.mobile,
+        createdAt: new Date(data.created_at),
+        lastLogin: new Date()
+      };
+    } catch (error) {
+      console.error('Error in getCustomerProfile:', error);
+      return null;
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password
+      });
 
-      const customer = customers.find(c => c.email.toLowerCase() === email.toLowerCase());
-      
-      if (!customer) {
+      if (error) {
         setState(prev => ({
           ...prev,
           isLoading: false,
-          error: 'No account found with this email address'
+          error: error.message
         }));
         return false;
       }
 
-      if (customer.password !== password) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: 'Invalid password'
-        }));
-        return false;
+      if (data.user) {
+        const customerData = await getCustomerProfile(data.user.id);
+        if (customerData) {
+          setState(prev => ({
+            ...prev,
+            customer: customerData,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null
+          }));
+          return true;
+        }
       }
-
-      // Update last login
-      customer.lastLogin = new Date();
-
-      const customerData: Customer = {
-        id: customer.id,
-        email: customer.email,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        phone: customer.phone,
-        createdAt: customer.createdAt,
-        lastLogin: customer.lastLogin
-      };
 
       setState(prev => ({
         ...prev,
-        customer: customerData,
-        isAuthenticated: true,
         isLoading: false,
-        error: null
+        error: 'Failed to load customer profile'
       }));
-
-      // Save to localStorage
-      localStorage.setItem('customer', JSON.stringify(customerData));
-
-      return true;
-    } catch (error) {
+      return false;
+    } catch (error: any) {
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -155,57 +175,73 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Register with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: customerData.email.toLowerCase().trim(),
+        password: customerData.password,
+        options: {
+          data: {
+            name: `${customerData.firstName} ${customerData.lastName}`,
+            mobile: customerData.phone
+          }
+        }
+      });
 
-      // Check if email already exists
-      const existingCustomer = customers.find(c => c.email.toLowerCase() === customerData.email.toLowerCase());
-      if (existingCustomer) {
+      if (error) {
         setState(prev => ({
           ...prev,
           isLoading: false,
-          error: 'An account with this email already exists'
+          error: error.message
         }));
         return false;
       }
 
-      // Create new customer
-      const newCustomer = {
-        id: Date.now().toString(),
-        email: customerData.email,
-        password: customerData.password,
-        firstName: customerData.firstName,
-        lastName: customerData.lastName,
-        phone: customerData.phone,
-        createdAt: new Date(),
-        lastLogin: new Date()
-      };
+      if (data.user) {
+        // Create customer profile in the customers table
+        const { error: profileError } = await supabase
+          .from('customers')
+          .insert({
+            id: data.user.id,
+            email: customerData.email.toLowerCase().trim(),
+            name: `${customerData.firstName} ${customerData.lastName}`,
+            mobile: customerData.phone,
+            is_verified: false,
+            addresses: []
+          });
 
-      customers.push(newCustomer);
+        if (profileError) {
+          console.error('Error creating customer profile:', profileError);
+          // Don't fail registration if profile creation fails
+        }
 
-      const customerProfile: Customer = {
-        id: newCustomer.id,
-        email: newCustomer.email,
-        firstName: newCustomer.firstName,
-        lastName: newCustomer.lastName,
-        phone: newCustomer.phone,
-        createdAt: newCustomer.createdAt,
-        lastLogin: newCustomer.lastLogin
-      };
+        const newCustomer: Customer = {
+          id: data.user.id,
+          email: customerData.email,
+          firstName: customerData.firstName,
+          lastName: customerData.lastName,
+          phone: customerData.phone,
+          createdAt: new Date(),
+          lastLogin: new Date()
+        };
+
+        setState(prev => ({
+          ...prev,
+          customer: newCustomer,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null
+        }));
+
+        return true;
+      }
 
       setState(prev => ({
         ...prev,
-        customer: customerProfile,
-        isAuthenticated: true,
         isLoading: false,
-        error: null
+        error: 'Registration failed. Please try again.'
       }));
-
-      // Save to localStorage
-      localStorage.setItem('customer', JSON.stringify(customerProfile));
-
-      return true;
-    } catch (error) {
+      return false;
+    } catch (error: any) {
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -215,53 +251,44 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const logout = () => {
-    setState(initialState);
-    localStorage.removeItem('customer');
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setState(initialState);
+    } catch (error) {
+      console.error('Logout error:', error);
+      setState(initialState);
+    }
   };
 
   const forgotPassword = async (email: string): Promise<boolean> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase().trim(), {
+        redirectTo: `${window.location.origin}/customer/reset-password`
+      });
 
-      const customer = customers.find(c => c.email.toLowerCase() === email.toLowerCase());
-      
-      if (!customer) {
+      if (error) {
         setState(prev => ({
           ...prev,
           isLoading: false,
-          error: 'No account found with this email address'
+          error: error.message
         }));
         return false;
       }
-
-      // Generate reset code
-      const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const resetCodeExpiry = new Date();
-      resetCodeExpiry.setMinutes(resetCodeExpiry.getMinutes() + 15); // 15 minutes expiry
-
-      customer.resetCode = resetCode;
-      customer.resetCodeExpiry = resetCodeExpiry;
 
       setState(prev => ({
         ...prev,
         isLoading: false,
         error: null
       }));
-
-      // In a real app, this would send an email
-      console.log(`Password reset code for ${email}: ${resetCode}`);
-      alert(`Password reset code sent to ${email}. For demo purposes, the code is: ${resetCode}`);
-
       return true;
-    } catch (error) {
+    } catch (error: any) {
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: 'Failed to send reset code. Please try again.'
+        error: 'Failed to send reset email. Please try again.'
       }));
       return false;
     }
@@ -271,51 +298,27 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // For Supabase, we use the session-based password reset
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
 
-      const customer = customers.find(c => c.email.toLowerCase() === email.toLowerCase());
-      
-      if (!customer) {
+      if (error) {
         setState(prev => ({
           ...prev,
           isLoading: false,
-          error: 'No account found with this email address'
+          error: error.message
         }));
         return false;
       }
-
-      if (!customer.resetCode || customer.resetCode !== resetCode) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: 'Invalid reset code'
-        }));
-        return false;
-      }
-
-      if (!customer.resetCodeExpiry || new Date() > customer.resetCodeExpiry) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: 'Reset code has expired. Please request a new one.'
-        }));
-        return false;
-      }
-
-      // Update password
-      customer.password = newPassword;
-      customer.resetCode = undefined;
-      customer.resetCodeExpiry = undefined;
 
       setState(prev => ({
         ...prev,
         isLoading: false,
         error: null
       }));
-
       return true;
-    } catch (error) {
+    } catch (error: any) {
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -331,30 +334,37 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const customer = customers.find(c => c.id === state.customer!.id);
-      if (!customer) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: 'Customer not found'
-        }));
-        return false;
+      const updateData: any = {};
+      
+      if (customerData.firstName || customerData.lastName) {
+        const firstName = customerData.firstName || state.customer.firstName;
+        const lastName = customerData.lastName || state.customer.lastName;
+        updateData.name = `${firstName} ${lastName}`;
+      }
+      
+      if (customerData.phone !== undefined) {
+        updateData.mobile = customerData.phone;
       }
 
-      // Update customer data
-      Object.assign(customer, customerData);
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase
+          .from('customers')
+          .update(updateData)
+          .eq('id', state.customer.id);
 
-      const updatedCustomer: Customer = {
-        id: customer.id,
-        email: customer.email,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        phone: customer.phone,
-        createdAt: customer.createdAt,
-        lastLogin: customer.lastLogin
+        if (error) {
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: error.message
+          }));
+          return false;
+        }
+      }
+
+      const updatedCustomer = {
+        ...state.customer,
+        ...customerData
       };
 
       setState(prev => ({
@@ -364,11 +374,8 @@ export const CustomerAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
         error: null
       }));
 
-      // Update localStorage
-      localStorage.setItem('customer', JSON.stringify(updatedCustomer));
-
       return true;
-    } catch (error) {
+    } catch (error: any) {
       setState(prev => ({
         ...prev,
         isLoading: false,
