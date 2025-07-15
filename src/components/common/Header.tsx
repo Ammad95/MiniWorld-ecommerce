@@ -75,17 +75,6 @@ const Header: React.FC = () => {
 
           {/* Right side actions - Clean icons */}
           <div className="flex items-center space-x-2">
-            {/* Admin Link */}
-            <Link to="/admin" className="hidden lg:block">
-              <motion.button
-                className="px-3 py-1 text-xs text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded transition-colors duration-200"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Admin
-              </motion.button>
-            </Link>
-            
             {/* Search */}
             <motion.button
               onClick={toggleSearch}
@@ -204,19 +193,6 @@ const Header: React.FC = () => {
                     </NavLink>
                   </motion.div>
                 ))}
-                
-                <motion.div
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: categories.length * 0.1 }}
-                  className="pt-4 border-t border-deepPurple-100"
-                >
-                  <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
-                    <div className="block px-4 py-3 text-base font-medium text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded-lg transition-all duration-200">
-                      Admin Panel
-                    </div>
-                  </Link>
-                </motion.div>
               </nav>
             </motion.div>
           )}
