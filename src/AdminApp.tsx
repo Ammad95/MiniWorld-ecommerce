@@ -12,6 +12,7 @@ import ProductManagement from './pages/admin/ProductManagement';
 import InventoryManagement from './pages/admin/InventoryManagement';
 import PaymentAccountsManagement from './pages/admin/PaymentAccountsManagement';
 import OrderManagement from './pages/admin/OrderManagement';
+import Communications from './pages/admin/Communications';
 
 function AdminApp() {
   return (
@@ -35,6 +36,7 @@ function AdminApp() {
                 <Route path="products" element={<ProductManagement />} />
                 <Route path="inventory" element={<InventoryManagement />} />
                 <Route path="payments" element={<PaymentAccountsManagement />} />
+                <Route path="communications" element={<Communications />} />
                 <Route path="change-password" element={<ChangePassword />} />
                 
                 {/* Placeholder routes for future features */}

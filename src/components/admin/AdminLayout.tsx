@@ -64,12 +64,6 @@ const AdminLayout: React.FC = () => {
       badge: 'Stock'
     },
     {
-      id: 'customers',
-      label: 'Customers',
-      icon: FiUsers,
-      path: '/admin/customers'
-    },
-    {
       id: 'payments',
       label: 'Payment Accounts',
       icon: FiCreditCard,

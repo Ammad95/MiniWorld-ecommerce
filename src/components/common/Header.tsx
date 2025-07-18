@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -9,26 +9,78 @@ import {
 } from 'react-icons/fi';
 import { useCart } from '../../context/CartContext';
 import { categories } from '../../data/categories';
+import { supabase } from '../../lib/supabase';
 import Logo from './Logo';
+
+interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  is_active: boolean;
+}
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [currentAnnouncement, setCurrentAnnouncement] = useState<string>('✨ Free shipping on orders over $100 | New arrivals weekly');
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
   const { state } = useCart();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleSearch = () => setIsSearchOpen(!isSearchOpen);
+
+  // Fetch active announcements from database
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('announcements')
+          .select('id, title, content, is_active')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          setAnnouncements(data);
+          setCurrentAnnouncement(data[0].content);
+        }
+      } catch (error) {
+        console.warn('Could not fetch announcements, using default:', error);
+        // Keep the default announcement if database fetch fails
+      }
+    };
+
+    fetchAnnouncements();
+  }, []);
+
+  // Cycle through announcements if there are multiple
+  useEffect(() => {
+    if (announcements.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentAnnouncementIndex((prevIndex) => {
+          const nextIndex = (prevIndex + 1) % announcements.length;
+          setCurrentAnnouncement(announcements[nextIndex].content);
+          return nextIndex;
+        });
+      }, 8000); // Change announcement every 8 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [announcements]);
 
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-deepPurple-100 sticky top-0 z-50 shadow-sm">
       {/* Top announcement bar - Deep purple gradient theme */}
       <div className="gradient-deep-purple py-2 px-4 text-center">
         <motion.p 
+          key={currentAnnouncementIndex} // Key for smooth animation when content changes
           className="text-white text-sm font-medium"
-          animate={{ opacity: [0.9, 1, 0.9] }}
-          transition={{ duration: 3, repeat: Infinity }}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.5 }}
         >
-          ✨ Free shipping on orders over $100 | New arrivals weekly
+          {currentAnnouncement}
         </motion.p>
       </div>
 
@@ -58,11 +110,9 @@ const Header: React.FC = () => {
                     {category.name}
                     {isActive && (
                       <motion.div
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-deepPurple-500 to-violet-600"
                         layoutId="activeTab"
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        className="absolute inset-0 bg-deepPurple-100 rounded-lg -z-10"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
                   </>
@@ -71,105 +121,89 @@ const Header: React.FC = () => {
             ))}
           </nav>
 
-          {/* Right side actions - Clean icons */}
-          <div className="flex items-center space-x-2">
-            {/* Search */}
-            <motion.button
+          {/* Right side actions */}
+          <div className="flex items-center space-x-4">
+            {/* Search Button */}
+            <button
               onClick={toggleSearch}
-              className="p-2 text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded-lg transition-colors duration-200"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="p-2 text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded-lg transition-all duration-200"
             >
               <FiSearch className="w-5 h-5" />
-            </motion.button>
+            </button>
 
             {/* Cart */}
-            <Link to="/cart">
-              <motion.div 
-                className="relative p-2 text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded-lg transition-colors duration-200"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FiShoppingCart className="w-5 h-5" />
-                {state.itemCount > 0 && (
-                  <motion.span
-                    className="absolute -top-1 -right-1 bg-gradient-to-r from-deepPurple-500 to-violet-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium shadow-lg"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                  >
-                    {state.itemCount}
-                  </motion.span>
-                )}
-              </motion.div>
+            <Link
+              to="/cart"
+              className="relative p-2 text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded-lg transition-all duration-200"
+            >
+              <FiShoppingCart className="w-5 h-5" />
+              {state.items.length > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium"
+                >
+                  {state.items.reduce((total, item) => total + item.quantity, 0)}
+                </motion.span>
+              )}
             </Link>
 
             {/* Mobile menu button */}
-            <motion.button
+            <button
               onClick={toggleMenu}
-              className="lg:hidden p-2 text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded-lg transition-colors duration-200"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="lg:hidden p-2 text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded-lg transition-all duration-200"
             >
-              {isMenuOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
-            </motion.button>
+              {isMenuOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
 
-        {/* Search Bar - Fixed formatting */}
+        {/* Search Bar */}
         <AnimatePresence>
           {isSearchOpen && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden border-t border-deepPurple-100 py-4"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="py-4 border-t border-deepPurple-100"
             >
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search products..."
-                  className="w-full px-4 py-3 pl-12 pr-4 text-deepPurple-700 placeholder-deepPurple-400 bg-white border border-deepPurple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent transition-all duration-200"
+                  placeholder="Search for baby products..."
+                  className="w-full px-4 py-3 pl-10 bg-white border border-deepPurple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent"
                 />
-                <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-deepPurple-400 w-5 h-5" />
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-deepPurple-400 w-5 h-5" />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Mobile Navigation - Clean design */}
+        {/* Mobile Navigation */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="lg:hidden overflow-hidden border-t border-deepPurple-100 py-4"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden py-4 border-t border-deepPurple-100"
             >
-              <nav className="flex flex-col space-y-1">
-                {categories.map((category, index) => (
-                  <motion.div
+              <nav className="space-y-2">
+                {categories.map((category) => (
+                  <NavLink
                     key={category.id}
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: index * 0.1 }}
+                    to={`/category/${category.id}`}
+                    className={({ isActive }) =>
+                      `block px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                        isActive
+                          ? 'text-deepPurple-700 bg-deepPurple-100'
+                          : 'text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50'
+                      }`
+                    }
+                    onClick={() => setIsMenuOpen(false)}
                   >
-                    <NavLink
-                      to={`/category/${category.id}`}
-                      onClick={() => setIsMenuOpen(false)}
-                      className={({ isActive }) =>
-                        `block px-4 py-3 text-base font-medium rounded-lg transition-all duration-200 ${
-                          isActive
-                            ? 'text-deepPurple-600 bg-deepPurple-50'
-                            : 'text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50'
-                        }`
-                      }
-                    >
-                      {category.displayName}
-                    </NavLink>
-                  </motion.div>
+                    {category.name}
+                  </NavLink>
                 ))}
               </nav>
             </motion.div>
