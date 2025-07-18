@@ -7,98 +7,87 @@ import {
   FiDollarSign, 
   FiTrendingUp, 
   FiEdit,
-  FiTrash2,
   FiPlus,
   FiSettings,
   FiLogOut,
-  FiCreditCard,
-  FiMail,
-  FiPhone,
-  FiCalendar,
-  FiEye,
-  FiCheckCircle,
-  FiXCircle
+  FiCreditCard
 } from 'react-icons/fi';
-import { useSupabaseProducts } from '../../context/SupabaseProductContext';
 import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
 import { supabase } from '../../lib/supabase';
 import CreateSubAdminModal from '../../components/admin/CreateSubAdminModal';
 import PaymentAccountsModal from '../../components/admin/PaymentAccountsModal';
 
-interface CustomerStats {
-  totalCustomers: number;
-  verifiedCustomers: number;
-  newCustomersToday: number;
+interface DashboardStats {
   totalOrders: number;
+  pendingOrders: number;
+  completedOrders: number;
+  todayOrders: number;
   totalRevenue: number;
+  totalProducts: number;
+  activeProducts: number;
+  lowStockProducts: number;
 }
 
-interface RecentCustomer {
+interface RecentOrder {
   id: string;
-  name: string;
-  email: string;
+  customer_name: string;
+  customer_email: string;
+  total_amount: number;
+  status: string;
   created_at: string;
-  is_verified: boolean;
-  email_verified: boolean;
-  totalOrders: number;
 }
 
 const AdminDashboard: React.FC = () => {
-  const { state: productState } = useSupabaseProducts();
-  const { state, signOut, deleteUser } = useSupabaseAuth();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [customerStats, setCustomerStats] = useState<CustomerStats>({
-    totalCustomers: 0,
-    verifiedCustomers: 0,
-    newCustomersToday: 0,
+  const { state: authState, signOut } = useSupabaseAuth();
+  
+  const [stats, setStats] = useState<DashboardStats>({
     totalOrders: 0,
-    totalRevenue: 0
+    pendingOrders: 0,
+    completedOrders: 0,
+    todayOrders: 0,
+    totalRevenue: 0,
+    totalProducts: 0,
+    activeProducts: 0,
+    lowStockProducts: 0,
   });
-  const [recentCustomers, setRecentCustomers] = useState<RecentCustomer[]>([]);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateSubAdminModal, setShowCreateSubAdminModal] = useState(false);
+  const [showPaymentAccountsModal, setShowPaymentAccountsModal] = useState(false);
 
   useEffect(() => {
-    fetchCustomerStats();
-    fetchRecentCustomers();
+    fetchDashboardStats();
+    fetchRecentOrders();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchDashboardStats = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
 
       // Initialize default stats
-      let orderStats = {
+      let dashboardStats: DashboardStats = {
         totalOrders: 0,
         pendingOrders: 0,
         completedOrders: 0,
         todayOrders: 0,
         totalRevenue: 0,
-      };
-
-      let productStats = {
         totalProducts: 0,
         activeProducts: 0,
         lowStockProducts: 0,
-        outOfStockProducts: 0,
       };
 
       // Safely fetch product data
       try {
-        const { data: products, error: productError } = await supabase
+        const { data: productsData, error: productError } = await supabase
           .from('products')
-          .select('id, is_active, created_at, stock_quantity');
+          .select('id, is_active, stock_quantity');
 
-        if (!productError && products) {
-          const activeProducts = products.filter(p => p.is_active);
-          productStats = {
-            totalProducts: products.length,
-            activeProducts: activeProducts.length,
-            lowStockProducts: products.filter(p => (p.stock_quantity || 0) < 10).length,
-            outOfStockProducts: products.filter(p => (p.stock_quantity || 0) === 0).length,
-          };
-        } else if (productError) {
-          console.warn('Products table not accessible:', productError.message);
+        if (!productError && productsData) {
+          const activeProducts = productsData.filter(p => p.is_active);
+          dashboardStats.totalProducts = productsData.length;
+          dashboardStats.activeProducts = activeProducts.length;
+          dashboardStats.lowStockProducts = productsData.filter(p => (p.stock_quantity || 0) < 10).length;
         }
       } catch (error) {
         console.warn('Error fetching products:', error);
@@ -118,552 +107,330 @@ const AdminDashboard: React.FC = () => {
           const todayOrders = orders.filter(o => new Date(o.created_at) >= today);
           const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
 
-          orderStats = {
-            totalOrders: orders.length,
-            pendingOrders: orders.filter(o => o.status === 'pending').length,
-            completedOrders: completedOrders.length,
-            todayOrders: todayOrders.length,
-            totalRevenue,
-          };
-        } else if (orderError) {
-          console.warn('Orders table not accessible:', orderError.message);
+          dashboardStats.totalOrders = orders.length;
+          dashboardStats.pendingOrders = orders.filter(o => o.status === 'pending').length;
+          dashboardStats.completedOrders = completedOrders.length;
+          dashboardStats.todayOrders = todayOrders.length;
+          dashboardStats.totalRevenue = totalRevenue;
         }
       } catch (error) {
         console.warn('Error fetching orders:', error);
       }
 
-      // Set customer stats to 0 (guest checkout only)
-      setCustomerStats({
-        totalCustomers: 0,
-        verifiedCustomers: 0,
-        newCustomersToday: 0,
-      });
-
-      setOrderStats(orderStats);
-      setProductStats(productStats);
+      setStats(dashboardStats);
 
     } catch (error) {
-      console.error('Error in fetchStats:', error);
-      // Set default values on error
-      setCustomerStats({
-        totalCustomers: 0,
-        verifiedCustomers: 0,
-        newCustomersToday: 0,
-      });
-      
-      setOrderStats({
-        totalOrders: 0,
-        pendingOrders: 0,
-        completedOrders: 0,
-        todayOrders: 0,
-        totalRevenue: 0,
-      });
-
-      setProductStats({
-        totalProducts: 0,
-        activeProducts: 0,
-        lowStockProducts: 0,
-        outOfStockProducts: 0,
-      });
+      console.error('Error in fetchDashboardStats:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const fetchRecentCustomers = async () => {
+  const fetchRecentOrders = async () => {
     try {
-      const { data, error } = await supabase
-        .from('customers')
-        .select(`
-          id,
-          name,
-          email,
-          created_at,
-          is_verified,
-          email_verified,
-          orders!left(id)
-        `)
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('id, customer_name, customer_email, total_amount, status, created_at')
         .order('created_at', { ascending: false })
         .limit(5);
 
-      if (error) {
-        console.error('Error fetching recent customers:', error);
-        return;
+      if (!error && orders) {
+        setRecentOrders(orders);
       }
-
-      const processedCustomers = data?.map(customer => ({
-        ...customer,
-        totalOrders: customer.orders?.length || 0
-      })) || [];
-
-      setRecentCustomers(processedCustomers);
     } catch (error) {
-      console.error('Error in fetchRecentCustomers:', error);
+      console.warn('Error fetching recent orders:', error);
     }
   };
 
-  // Updated statistics with real customer data
-  const stats = [
-    {
-      title: 'Total Customers',
-      value: customerStats.totalCustomers.toString(),
-      change: customerStats.newCustomersToday > 0 ? `+${customerStats.newCustomersToday} today` : 'No new today',
-      icon: FiUsers,
-      color: 'bg-blue-500'
-    },
-    {
-      title: 'Products',
-      value: productState.products.length.toString(),
-      change: '+8%',
-      icon: FiShoppingBag,
-      color: 'bg-green-500'
-    },
-    {
-      title: 'Total Orders',
-      value: customerStats.totalOrders.toString(),
-      change: '+15%',
-      icon: FiDollarSign,
-      color: 'bg-purple-500'
-    },
-    {
-      title: 'Revenue',
-      value: `Rs. ${customerStats.totalRevenue.toLocaleString()}`,
-      change: '+25%',
-      icon: FiTrendingUp,
-      color: 'bg-yellow-500'
-    }
-  ];
+  const formatCurrency = (amount: number) => {
+    return `Rs. ${amount.toLocaleString()}`;
+  };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      await deleteUser(userId);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'text-green-600 bg-green-100';
+      case 'pending': return 'text-yellow-600 bg-yellow-100';
+      case 'shipped': return 'text-blue-600 bg-blue-100';
+      case 'cancelled': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+  const handleSubAdminSuccess = () => {
+    setShowCreateSubAdminModal(false);
+    // Optionally refresh data or show success message
   };
 
-  const handleCreateSubAdminSuccess = () => {
-    setShowCreateModal(false);
-    // Refresh data or show success message
-  };
-
-  // TODO: Implement proper user management - for now showing empty array
-  const admins: any[] = [];
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-deepPurple-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="container mx-auto container-padding py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600">Welcome back, {state.user?.email}</p>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <motion.button
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FiSettings className="w-5 h-5" />
-              </motion.button>
-              
-              <motion.button
-                onClick={signOut}
-                className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FiLogOut className="w-4 h-4" />
-                <span>Logout</span>
-              </motion.button>
-            </div>
-          </div>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-2">Welcome back, {authState.user?.email}</p>
         </div>
-      </header>
-
-      <div className="container mx-auto container-padding section-padding">
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.6 }}
-              className="modern-card p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                  <p className="text-sm text-green-600 font-medium">{stat.change}</p>
-                </div>
-                <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </motion.div>
-          ))}
+        
+        <div className="flex items-center space-x-4">
+          <button 
+            onClick={() => setShowCreateSubAdminModal(true)}
+            className="bg-deepPurple-600 text-white px-4 py-2 rounded-lg hover:bg-deepPurple-700 transition-colors flex items-center space-x-2"
+          >
+            <FiPlus className="w-4 h-4" />
+            <span>Add Sub-Admin</span>
+          </button>
+          
+          <button 
+            onClick={() => setShowPaymentAccountsModal(true)}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
+          >
+            <FiCreditCard className="w-4 h-4" />
+            <span>Payment Accounts</span>
+          </button>
         </div>
+      </div>
 
-        {/* Quick Actions */}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-          className="modern-card p-6 mb-8"
+          className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
         >
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link
-              to="/admin/products"
-              className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
-            >
-              <div className="p-3 bg-green-100 rounded-lg mr-4 group-hover:bg-green-200 transition-colors duration-200">
-                <FiShoppingBag className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Manage Products</h3>
-                <p className="text-sm text-gray-600">{productState.products.length} products</p>
-              </div>
-            </Link>
-            
-            <Link
-              to="/admin/orders"
-              className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
-            >
-              <div className="p-3 bg-purple-100 rounded-lg mr-4 group-hover:bg-purple-200 transition-colors duration-200">
-                <FiShoppingBag className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Manage Orders</h3>
-                <p className="text-sm text-gray-600">Track & update orders</p>
-              </div>
-            </Link>
-            
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 group text-left"
-            >
-              <div className="p-3 bg-blue-100 rounded-lg mr-4 group-hover:bg-blue-200 transition-colors duration-200">
-                <FiPlus className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Add Sub-Admin</h3>
-                <p className="text-sm text-gray-600">Create new admin user</p>
-              </div>
-            </button>
-            
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 group text-left"
-            >
-              <div className="p-3 bg-orange-100 rounded-lg mr-4 group-hover:bg-orange-200 transition-colors duration-200">
-                <FiCreditCard className="w-6 h-6 text-orange-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Payment Accounts</h3>
-                <p className="text-sm text-gray-600">Manage bank accounts</p>
-              </div>
-            </button>
-            
-            <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-              <div className="p-3 bg-purple-100 rounded-lg mr-4">
-                <FiSettings className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">System Settings</h3>
-                <p className="text-sm text-gray-600">Configure system</p>
-              </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Total Orders</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.totalOrders}</p>
+              <p className="text-xs text-gray-400">Today: +{stats.todayOrders}</p>
+            </div>
+            <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FiShoppingBag className="h-6 w-6 text-blue-600" />
             </div>
           </div>
         </motion.div>
 
-        {/* Sub-Admins Section */}
-        {state.user?.role === 'super_admin' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="modern-card p-6 mb-8"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">Admin Users</h2>
-                <p className="text-gray-600">Manage your administrative team</p>
-              </div>
-              
-              <motion.button
-                onClick={() => setShowCreateModal(true)}
-                className="btn-primary flex items-center space-x-2"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FiPlus className="w-4 h-4" />
-                <span>Add Sub-Admin</span>
-              </motion.button>
-            </div>
-
-            {/* Admins List */}
-            {admins.length > 0 ? (
-              <div className="space-y-4">
-                {admins.map((admin, index) => (
-                  <motion.div
-                    key={admin.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.6 }}
-                    className="bg-gray-50 rounded-lg p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                        <span className="text-lg font-semibold text-gray-700">
-                          {admin.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{admin.name}</h3>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <div className="flex items-center space-x-1">
-                            <FiMail className="w-4 h-4" />
-                            <span>{admin.email}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <FiPhone className="w-4 h-4" />
-                            <span>{admin.mobile}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <FiCalendar className="w-4 h-4" />
-                            <span>Created {formatDate(admin.createdAt)}</span>
-                          </div>
-                        </div>
-                        {admin.isFirstLogin && (
-                          <span className="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                            Pending First Login
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <motion.button
-                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => console.log('Edit user:', admin.id)}
-                      >
-                        <FiEdit className="w-4 h-4" />
-                      </motion.button>
-                      
-                      <motion.button
-                        className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleDeleteUser(admin.id)}
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12"
-              >
-                <FiUsers className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Sub-Admins Yet</h3>
-                <p className="text-gray-600 mb-6">Start by creating your first sub-administrator</p>
-                <motion.button
-                  onClick={() => setShowCreateModal(true)}
-                  className="btn-primary"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Create First Sub-Admin
-                </motion.button>
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-
-        {/* Quick Actions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          transition={{ delay: 0.1 }}
+          className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
         >
-          <div className="modern-card p-6 text-center">
-            <FiShoppingBag className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Products</h3>
-            <p className="text-gray-600 mb-4">Add, edit, and organize your product catalog</p>
-            <button className="btn-secondary">Coming Soon</button>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Revenue</p>
+              <p className="text-2xl font-semibold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
+              <p className="text-xs text-green-600">+{stats.completedOrders} completed</p>
+            </div>
+            <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <FiDollarSign className="h-6 w-6 text-green-600" />
+            </div>
           </div>
-          
-          <div className="modern-card p-6 text-center">
-            <FiUsers className="w-12 h-12 text-green-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Customer Management</h3>
-            <p className="text-gray-600 mb-4">View and manage customer accounts</p>
-            <button className="btn-secondary">Coming Soon</button>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Products</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.totalProducts}</p>
+              <p className="text-xs text-gray-400">{stats.activeProducts} active</p>
+            </div>
+            <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <FiShoppingBag className="h-6 w-6 text-purple-600" />
+            </div>
           </div>
-          
-          <div className="modern-card p-6 text-center">
-            <FiTrendingUp className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics</h3>
-            <p className="text-gray-600 mb-4">Track sales performance and insights</p>
-            <button className="btn-secondary">Coming Soon</button>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Pending Orders</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.pendingOrders}</p>
+              <p className="text-xs text-orange-600">Needs attention</p>
+            </div>
+            <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <FiTrendingUp className="h-6 w-6 text-orange-600" />
+            </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Customer Overview and Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Customers */}
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-lg shadow-sm p-6"
+          className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
         >
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Customers</h3>
-            <Link 
-              to="/admin/customers"
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1"
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <Link
+              to="/admin/products"
+              className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
             >
-              <span>View All</span>
-              <FiEye className="w-4 h-4" />
+              <div className="bg-green-100 p-2 rounded-lg">
+                <FiShoppingBag className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="font-medium text-green-900">Manage Products</p>
+                <p className="text-sm text-green-600">{stats.totalProducts} products</p>
+              </div>
             </Link>
+
+            <Link
+              to="/admin/orders"
+              className="flex items-center space-x-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <div className="bg-purple-100 p-2 rounded-lg">
+                <FiUsers className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="font-medium text-purple-900">Manage Orders</p>
+                <p className="text-sm text-purple-600">Track & update orders</p>
+              </div>
+            </Link>
+
+            <button
+              onClick={() => setShowCreateSubAdminModal(true)}
+              className="flex items-center space-x-3 p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+            >
+              <div className="bg-orange-100 p-2 rounded-lg">
+                <FiPlus className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="font-medium text-orange-900">Add Sub-Admin</p>
+                <p className="text-sm text-orange-600">Create new admin user</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setShowPaymentAccountsModal(true)}
+              className="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <FiCreditCard className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-medium text-blue-900">Payment Accounts</p>
+                <p className="text-sm text-blue-600">Manage bank accounts</p>
+              </div>
+            </button>
           </div>
-          
-          {isLoadingStats ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse flex space-x-3">
-                  <div className="rounded-full bg-gray-200 h-10 w-10"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : recentCustomers.length > 0 ? (
-            <div className="space-y-3">
-              {recentCustomers.map((customer) => {
-                const isVerified = customer.is_verified || customer.email_verified;
-                return (
-                  <div key={customer.id} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg">
-                    <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                      <FiUsers className="h-5 w-5 text-gray-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <p className="text-sm font-medium text-gray-900 truncate">{customer.name}</p>
-                        {isVerified ? (
-                          <FiCheckCircle className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <FiXCircle className="h-4 w-4 text-red-500" />
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500 truncate">{customer.email}</p>
-                      <div className="flex items-center space-x-4 text-xs text-gray-400">
-                        <span>Joined {formatDate(customer.created_at)}</span>
-                        <span>{customer.totalOrders} orders</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-6 text-gray-500">
-              <FiUsers className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-2">No customers yet</p>
-            </div>
-          )}
         </motion.div>
 
-        {/* Customer Statistics */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-lg shadow-sm p-6"
+          className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Insights</h3>
-          
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Orders</h3>
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Verified Customers</span>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-900">
-                  {customerStats.verifiedCustomers} / {customerStats.totalCustomers}
-                </span>
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full" 
-                    style={{ 
-                      width: customerStats.totalCustomers > 0 
-                        ? `${(customerStats.verifiedCustomers / customerStats.totalCustomers) * 100}%` 
-                        : '0%' 
-                    }}
-                  ></div>
+            {recentOrders.length > 0 ? (
+              recentOrders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-deepPurple-100 rounded-full flex items-center justify-center">
+                      <FiShoppingBag className="w-4 h-4 text-deepPurple-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{order.customer_name}</p>
+                      <p className="text-sm text-gray-500">{order.customer_email}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-gray-900">{formatCurrency(order.total_amount)}</p>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <FiShoppingBag className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No recent orders</p>
               </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">New Today</span>
-              <span className="text-sm font-medium text-gray-900">
-                {customerStats.newCustomersToday}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Average Orders per Customer</span>
-              <span className="text-sm font-medium text-gray-900">
-                {customerStats.totalCustomers > 0 
-                  ? (customerStats.totalOrders / customerStats.totalCustomers).toFixed(1) 
-                  : '0'
-                }
-              </span>
-            </div>
-
-            <div className="pt-4 border-t">
-              <Link 
-                to="/admin/customers"
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block"
+            )}
+          </div>
+          {recentOrders.length > 0 && (
+            <div className="mt-4">
+              <Link
+                to="/admin/orders"
+                className="text-deepPurple-600 hover:text-deepPurple-700 text-sm font-medium"
               >
-                Manage Customers
+                View all orders →
               </Link>
             </div>
-          </div>
+          )}
         </motion.div>
       </div>
 
-      {/* Create Sub-Admin Modal */}
-      <CreateSubAdminModal 
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={handleCreateSubAdminSuccess}
+      {/* System Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Settings</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+            <FiSettings className="w-5 h-5 text-gray-600" />
+            <div>
+              <p className="font-medium text-gray-900">Configure System</p>
+              <p className="text-sm text-gray-500">System configuration settings</p>
+            </div>
+          </div>
+
+          <Link
+            to="/admin/change-password"
+            className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <FiEdit className="w-5 h-5 text-gray-600" />
+            <div>
+              <p className="font-medium text-gray-900">Change Password</p>
+              <p className="text-sm text-gray-500">Update your account password</p>
+            </div>
+          </Link>
+
+          <button
+            onClick={signOut}
+            className="flex items-center space-x-3 p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+          >
+            <FiLogOut className="w-5 h-5 text-red-600" />
+            <div>
+              <p className="font-medium text-red-900">Sign Out</p>
+              <p className="text-sm text-red-600">Exit admin panel</p>
+            </div>
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Modals */}
+      <CreateSubAdminModal
+        isOpen={showCreateSubAdminModal}
+        onClose={() => setShowCreateSubAdminModal(false)}
+        onSuccess={handleSubAdminSuccess}
       />
 
-      {/* Payment Accounts Modal */}
-      <PaymentAccountsModal 
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
+      <PaymentAccountsModal
+        isOpen={showPaymentAccountsModal}
+        onClose={() => setShowPaymentAccountsModal(false)}
       />
     </div>
   );
