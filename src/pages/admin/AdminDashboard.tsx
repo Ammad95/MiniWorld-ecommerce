@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
@@ -14,25 +14,138 @@ import {
   FiCreditCard,
   FiMail,
   FiPhone,
-  FiCalendar
+  FiCalendar,
+  FiEye,
+  FiCheckCircle,
+  FiXCircle
 } from 'react-icons/fi';
 import { useSupabaseProducts } from '../../context/SupabaseProductContext';
 import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
+import { supabase } from '../../lib/supabase';
 import CreateSubAdminModal from '../../components/admin/CreateSubAdminModal';
 import PaymentAccountsModal from '../../components/admin/PaymentAccountsModal';
+
+interface CustomerStats {
+  totalCustomers: number;
+  verifiedCustomers: number;
+  newCustomersToday: number;
+  totalOrders: number;
+  totalRevenue: number;
+}
+
+interface RecentCustomer {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+  is_verified: boolean;
+  email_verified: boolean;
+  totalOrders: number;
+}
 
 const AdminDashboard: React.FC = () => {
   const { state: productState } = useSupabaseProducts();
   const { state, signOut, deleteUser } = useSupabaseAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [customerStats, setCustomerStats] = useState<CustomerStats>({
+    totalCustomers: 0,
+    verifiedCustomers: 0,
+    newCustomersToday: 0,
+    totalOrders: 0,
+    totalRevenue: 0
+  });
+  const [recentCustomers, setRecentCustomers] = useState<RecentCustomer[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  // Statistics (mix of real and mock data)
+  useEffect(() => {
+    fetchCustomerStats();
+    fetchRecentCustomers();
+  }, []);
+
+  const fetchCustomerStats = async () => {
+    try {
+      // Fetch customer data
+      const { data: customers, error: customerError } = await supabase
+        .from('customers')
+        .select('id, is_verified, email_verified, created_at');
+
+      if (customerError) {
+        console.error('Error fetching customers:', customerError);
+        return;
+      }
+
+      // Fetch order data
+      const { data: orders, error: orderError } = await supabase
+        .from('orders')
+        .select('total_amount, status, created_at');
+
+      if (orderError) {
+        console.error('Error fetching orders:', orderError);
+        return;
+      }
+
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const verifiedCount = customers?.filter(c => c.is_verified || c.email_verified).length || 0;
+      const newToday = customers?.filter(c => new Date(c.created_at) >= today).length || 0;
+      
+      const completedOrders = orders?.filter(o => o.status === 'completed') || [];
+      const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
+      setCustomerStats({
+        totalCustomers: customers?.length || 0,
+        verifiedCustomers: verifiedCount,
+        newCustomersToday: newToday,
+        totalOrders: orders?.length || 0,
+        totalRevenue: totalRevenue
+      });
+    } catch (error) {
+      console.error('Error in fetchCustomerStats:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
+  const fetchRecentCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select(`
+          id,
+          name,
+          email,
+          created_at,
+          is_verified,
+          email_verified,
+          orders!left(id)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.error('Error fetching recent customers:', error);
+        return;
+      }
+
+      const processedCustomers = data?.map(customer => ({
+        ...customer,
+        totalOrders: customer.orders?.length || 0
+      })) || [];
+
+      setRecentCustomers(processedCustomers);
+    } catch (error) {
+      console.error('Error in fetchRecentCustomers:', error);
+    }
+  };
+
+  // Updated statistics with real customer data
   const stats = [
     {
-      title: 'Admin Users',
-      value: state.user ? '1' : '0',
-      change: '+12%',
+      title: 'Total Customers',
+      value: customerStats.totalCustomers.toString(),
+      change: customerStats.newCustomersToday > 0 ? `+${customerStats.newCustomersToday} today` : 'No new today',
       icon: FiUsers,
       color: 'bg-blue-500'
     },
@@ -44,18 +157,18 @@ const AdminDashboard: React.FC = () => {
       color: 'bg-green-500'
     },
     {
-      title: 'Revenue',
-      value: '$45,678',
+      title: 'Total Orders',
+      value: customerStats.totalOrders.toString(),
       change: '+15%',
       icon: FiDollarSign,
       color: 'bg-purple-500'
     },
     {
-      title: 'Growth',
-      value: '23%',
-      change: '+5%',
+      title: 'Revenue',
+      value: `Rs. ${customerStats.totalRevenue.toLocaleString()}`,
+      change: '+25%',
       icon: FiTrendingUp,
-      color: 'bg-orange-500'
+      color: 'bg-yellow-500'
     }
   ];
 
@@ -67,9 +180,9 @@ const AdminDashboard: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -89,7 +202,7 @@ const AdminDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600">Welcome back, {state.user?.name}</p>
+              <p className="text-gray-600">Welcome back, {state.user?.email}</p>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -350,6 +463,130 @@ const AdminDashboard: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics</h3>
             <p className="text-gray-600 mb-4">Track sales performance and insights</p>
             <button className="btn-secondary">Coming Soon</button>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Customer Overview and Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Customers */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white rounded-lg shadow-sm p-6"
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Recent Customers</h3>
+            <Link 
+              to="/admin/customers"
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1"
+            >
+              <span>View All</span>
+              <FiEye className="w-4 h-4" />
+            </Link>
+          </div>
+          
+          {isLoadingStats ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="animate-pulse flex space-x-3">
+                  <div className="rounded-full bg-gray-200 h-10 w-10"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentCustomers.length > 0 ? (
+            <div className="space-y-3">
+              {recentCustomers.map((customer) => {
+                const isVerified = customer.is_verified || customer.email_verified;
+                return (
+                  <div key={customer.id} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg">
+                    <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                      <FiUsers className="h-5 w-5 text-gray-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium text-gray-900 truncate">{customer.name}</p>
+                        {isVerified ? (
+                          <FiCheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <FiXCircle className="h-4 w-4 text-red-500" />
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 truncate">{customer.email}</p>
+                      <div className="flex items-center space-x-4 text-xs text-gray-400">
+                        <span>Joined {formatDate(customer.created_at)}</span>
+                        <span>{customer.totalOrders} orders</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-500">
+              <FiUsers className="mx-auto h-12 w-12 text-gray-300" />
+              <p className="mt-2">No customers yet</p>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Customer Statistics */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white rounded-lg shadow-sm p-6"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Insights</h3>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Verified Customers</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-900">
+                  {customerStats.verifiedCustomers} / {customerStats.totalCustomers}
+                </span>
+                <div className="w-20 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-green-500 h-2 rounded-full" 
+                    style={{ 
+                      width: customerStats.totalCustomers > 0 
+                        ? `${(customerStats.verifiedCustomers / customerStats.totalCustomers) * 100}%` 
+                        : '0%' 
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">New Today</span>
+              <span className="text-sm font-medium text-gray-900">
+                {customerStats.newCustomersToday}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Average Orders per Customer</span>
+              <span className="text-sm font-medium text-gray-900">
+                {customerStats.totalCustomers > 0 
+                  ? (customerStats.totalOrders / customerStats.totalCustomers).toFixed(1) 
+                  : '0'
+                }
+              </span>
+            </div>
+
+            <div className="pt-4 border-t">
+              <Link 
+                to="/admin/customers"
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block"
+              >
+                Manage Customers
+              </Link>
+            </div>
           </div>
         </motion.div>
       </div>

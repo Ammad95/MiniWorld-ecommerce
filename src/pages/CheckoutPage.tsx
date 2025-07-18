@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
-  FiUser, 
+  FiCreditCard, 
+  FiEdit3,
   FiMail, 
   FiPhone, 
   FiMapPin, 
-  FiTruck, 
+  FiShoppingBag, 
   FiCheck, 
   FiArrowRight, 
   FiArrowLeft,
@@ -130,7 +131,7 @@ const CheckoutPage: React.FC = () => {
   
   const steps = [
     { number: 1, title: 'Shipping Address', icon: FiMapPin },
-    { number: 2, title: 'Payment Method', icon: FiTruck },
+    { number: 2, title: 'Payment Method', icon: FiShoppingBag },
     { number: 3, title: 'Review Order', icon: FiCheck },
     { number: 4, title: 'Confirmation', icon: FiCheck },
   ];
@@ -196,7 +197,7 @@ const CheckoutPage: React.FC = () => {
                   <form onSubmit={handleShippingSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="relative">
-                        <FiUser className="absolute left-3 top-3 w-5 h-5 text-navy-400" />
+                        <FiEdit3 className="absolute left-3 top-3 w-5 h-5 text-navy-400" />
                         <input
                           type="text"
                           placeholder="Full Name"
@@ -309,7 +310,7 @@ const CheckoutPage: React.FC = () => {
                       onClick={() => setPaymentMethod('cash_on_delivery')}
                     >
                       <div className="flex items-center space-x-3">
-                        <FiTruck className="w-6 h-6 text-orange-600" />
+                        <FiShoppingBag className="w-6 h-6 text-orange-600" />
                         <div>
                           <h3 className="font-semibold text-navy-900">Cash on Delivery</h3>
                           <p className="text-sm text-navy-600">Pay when you receive your order</p>
@@ -369,7 +370,7 @@ const CheckoutPage: React.FC = () => {
                     {paymentMethod === 'cash_on_delivery' && (
                       <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                         <div className="flex items-center space-x-2 mb-3">
-                          <FiTruck className="w-5 h-5 text-green-600" />
+                          <FiShoppingBag className="w-5 h-5 text-green-600" />
                           <h4 className="font-semibold text-green-900">Cash on Delivery Selected</h4>
                         </div>
                         <p className="text-sm text-green-800 mb-3">

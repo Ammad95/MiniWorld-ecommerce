@@ -230,7 +230,7 @@ const OrderManagement: React.FC = () => {
               </Link>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Orders Management</h1>
-                <p className="text-gray-600 mt-1">Manage and track all customer orders</p>
+                <p className="text-gray-600 mt-1">Manage and track all orders</p>
               </div>
             </div>
             
@@ -239,7 +239,7 @@ const OrderManagement: React.FC = () => {
                 <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Search orders, customers..."
+                  placeholder="Search orders, names, emails..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent w-80"
@@ -424,9 +424,9 @@ const OrderManagement: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Customer Information */}
+                  {/* Order Contact Information */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
                     <div className="space-y-4">
                       <div className="flex items-start space-x-3">
                         <FiUser className="w-5 h-5 text-gray-400 mt-0.5" />

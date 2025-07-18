@@ -12,7 +12,6 @@ import ProductManagement from './pages/admin/ProductManagement';
 import InventoryManagement from './pages/admin/InventoryManagement';
 import PaymentAccountsManagement from './pages/admin/PaymentAccountsManagement';
 import OrderManagement from './pages/admin/OrderManagement';
-import DebugAuth from './debug-auth';
 
 function AdminApp() {
   return (
@@ -23,7 +22,6 @@ function AdminApp() {
             <Routes>
               {/* Admin Authentication */}
               <Route path="/login" element={<AdminLogin />} />
-              <Route path="/debug-auth" element={<DebugAuth />} />
 
               {/* Admin Routes with Layout */}
               <Route path="/" element={
@@ -40,21 +38,15 @@ function AdminApp() {
                 <Route path="change-password" element={<ChangePassword />} />
                 
                 {/* Placeholder routes for future features */}
-                <Route path="customers" element={
-                  <div className="p-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Customers Management</h1>
-                    <p className="text-gray-600 mt-2">Coming soon...</p>
-                  </div>
-                } />
                 <Route path="analytics" element={
                   <div className="p-8">
                     <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
                     <p className="text-gray-600 mt-2">Coming soon...</p>
                   </div>
                 } />
-                <Route path="communications" element={
+                <Route path="reports" element={
                   <div className="p-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Communications</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
                     <p className="text-gray-600 mt-2">Coming soon...</p>
                   </div>
                 } />
@@ -66,8 +58,8 @@ function AdminApp() {
                 } />
               </Route>
 
-              {/* Redirect /admin to /admin/ for consistency */}
-              <Route path="*" element={<Navigate to="/admin/" replace />} />
+              {/* Catch-all redirect to dashboard */}
+              <Route path="*" element={<Navigate to="/admin" replace />} />
             </Routes>
           </OrderProvider>
         </PaymentProvider>

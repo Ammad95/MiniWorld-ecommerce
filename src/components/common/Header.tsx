@@ -5,9 +5,7 @@ import {
   FiShoppingCart, 
   FiMenu, 
   FiX, 
-  FiSearch,
-  FiUser,
-  FiHeart
+  FiSearch
 } from 'react-icons/fi';
 import { useCart } from '../../context/CartContext';
 import { categories } from '../../data/categories';
@@ -84,26 +82,6 @@ const Header: React.FC = () => {
             >
               <FiSearch className="w-5 h-5" />
             </motion.button>
-
-            {/* Wishlist */}
-            <motion.button
-              className="p-2 text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded-lg transition-colors duration-200"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <FiHeart className="w-5 h-5" />
-            </motion.button>
-
-            {/* Account */}
-            <Link to="/customer/login">
-              <motion.button
-                className="p-2 text-deepPurple-600 hover:text-deepPurple-700 hover:bg-deepPurple-50 rounded-lg transition-colors duration-200"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FiUser className="w-5 h-5" />
-              </motion.button>
-            </Link>
 
             {/* Cart */}
             <Link to="/cart">
