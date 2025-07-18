@@ -391,8 +391,9 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const createSubAdmin = async (userData: { email: string; name: string; mobile?: string }): Promise<{ success: boolean; message: string; tempPassword?: string }> => {
     try {
-      if (!state.user || state.user.role !== 'super_admin') {
-        return { success: false, message: 'Unauthorized. Super admin access required.' };
+      // Allow both super_admin and admin roles to create sub-admins
+      if (!state.user || (state.user.role !== 'super_admin' && state.user.role !== 'admin')) {
+        return { success: false, message: 'Unauthorized. Admin access required.' };
       }
 
       const tempPassword = generateTempPassword();
@@ -466,8 +467,9 @@ export const SupabaseAuthProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const deleteUser = async (userId: string): Promise<{ success: boolean; message: string }> => {
     try {
-      if (!state.user || state.user.role !== 'super_admin') {
-        return { success: false, message: 'Unauthorized. Super admin access required.' };
+      // Allow both super_admin and admin roles to create sub-admins
+      if (!state.user || (state.user.role !== 'super_admin' && state.user.role !== 'admin')) {
+        return { success: false, message: 'Unauthorized. Admin access required.' };
       }
 
       const { error } = await supabase

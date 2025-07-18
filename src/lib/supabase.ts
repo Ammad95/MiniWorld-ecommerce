@@ -221,21 +221,35 @@ export const supabaseHelpers = {
   }),
 
   // Format app product to database format
-  formatProductForDB: (appProduct: any) => ({
-    name: appProduct.name,
-    price: appProduct.price,
-    original_price: appProduct.originalPrice,
-    category: appProduct.category,
-    description: appProduct.description,
-    features: appProduct.features || [],
-    images: appProduct.images || [],
-    in_stock: appProduct.inStock,
-    stock_quantity: appProduct.stockQuantity,
-    low_stock_threshold: appProduct.lowStockThreshold,
-    max_stock_quantity: appProduct.maxStockQuantity,
-    rating: appProduct.rating || 0,
-    reviews: appProduct.reviews || 0,
-    is_new: appProduct.isNew || false,
-    is_featured: appProduct.isFeatured || false,
-  }),
+  formatProductForDB: (appProduct: any) => {
+    // Calculate stock status based on stock quantity
+    let stockStatus = 'out_of_stock';
+    const stockQuantity = appProduct.stockQuantity || 0;
+    const lowStockThreshold = appProduct.lowStockThreshold || 10;
+    
+    if (stockQuantity > lowStockThreshold) {
+      stockStatus = 'in_stock';
+    } else if (stockQuantity > 0) {
+      stockStatus = 'low_stock';
+    }
+
+    return {
+      name: appProduct.name,
+      price: appProduct.price,
+      original_price: appProduct.originalPrice || null,
+      category: appProduct.category,
+      description: appProduct.description || '',
+      features: appProduct.features || [],
+      images: appProduct.images || [],
+      in_stock: stockQuantity > 0,
+      stock_quantity: stockQuantity,
+      low_stock_threshold: lowStockThreshold,
+      max_stock_quantity: appProduct.maxStockQuantity || 100,
+      stock_status: stockStatus,
+      rating: appProduct.rating || 0,
+      reviews: appProduct.reviews || 0,
+      is_new: appProduct.isNew || false,
+      is_featured: appProduct.isFeatured || false,
+    };
+  },
 }; 
