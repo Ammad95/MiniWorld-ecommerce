@@ -8,9 +8,8 @@ import {
   FiEyeOff,
   FiSave,
   FiX,
-  FiMegaphone,
-  FiCalendar,
-  FiUser
+  FiSpeaker,
+  FiCalendar
 } from 'react-icons/fi';
 import { supabase } from '../../lib/supabase';
 
@@ -210,7 +209,7 @@ const Communications: React.FC = () => {
         <div className="divide-y divide-gray-200">
           {announcements.length === 0 ? (
             <div className="p-12 text-center">
-              <FiMegaphone className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <FiSpeaker className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No announcements yet</h3>
               <p className="text-gray-600 mb-4">Create your first announcement to display on your website</p>
               <button

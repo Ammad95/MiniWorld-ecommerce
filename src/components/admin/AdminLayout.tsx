@@ -5,7 +5,6 @@ import {
   FiHome,
   FiShoppingBag,
   FiPackage,
-  FiUsers,
   FiCreditCard,
   FiSettings,
   FiLogOut,
