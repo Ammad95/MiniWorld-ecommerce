@@ -63,48 +63,110 @@ const AdminDashboard: React.FC = () => {
     fetchRecentCustomers();
   }, []);
 
-  const fetchCustomerStats = async () => {
+  const fetchStats = async () => {
     try {
-      // Fetch customer data
-      const { data: customers, error: customerError } = await supabase
-        .from('customers')
-        .select('id, is_verified, email_verified, created_at');
+      setLoading(true);
 
-      if (customerError) {
-        console.error('Error fetching customers:', customerError);
-        return;
+      // Initialize default stats
+      let orderStats = {
+        totalOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        todayOrders: 0,
+        totalRevenue: 0,
+      };
+
+      let productStats = {
+        totalProducts: 0,
+        activeProducts: 0,
+        lowStockProducts: 0,
+        outOfStockProducts: 0,
+      };
+
+      // Safely fetch product data
+      try {
+        const { data: products, error: productError } = await supabase
+          .from('products')
+          .select('id, is_active, created_at, stock_quantity');
+
+        if (!productError && products) {
+          const activeProducts = products.filter(p => p.is_active);
+          productStats = {
+            totalProducts: products.length,
+            activeProducts: activeProducts.length,
+            lowStockProducts: products.filter(p => (p.stock_quantity || 0) < 10).length,
+            outOfStockProducts: products.filter(p => (p.stock_quantity || 0) === 0).length,
+          };
+        } else if (productError) {
+          console.warn('Products table not accessible:', productError.message);
+        }
+      } catch (error) {
+        console.warn('Error fetching products:', error);
       }
 
-      // Fetch order data
-      const { data: orders, error: orderError } = await supabase
-        .from('orders')
-        .select('total_amount, status, created_at');
+      // Safely fetch order data
+      try {
+        const { data: orders, error: orderError } = await supabase
+          .from('orders')
+          .select('total_amount, status, created_at');
 
-      if (orderError) {
-        console.error('Error fetching orders:', orderError);
-        return;
+        if (!orderError && orders) {
+          const now = new Date();
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          
+          const completedOrders = orders.filter(o => o.status === 'completed');
+          const todayOrders = orders.filter(o => new Date(o.created_at) >= today);
+          const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
+          orderStats = {
+            totalOrders: orders.length,
+            pendingOrders: orders.filter(o => o.status === 'pending').length,
+            completedOrders: completedOrders.length,
+            todayOrders: todayOrders.length,
+            totalRevenue,
+          };
+        } else if (orderError) {
+          console.warn('Orders table not accessible:', orderError.message);
+        }
+      } catch (error) {
+        console.warn('Error fetching orders:', error);
       }
 
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      const verifiedCount = customers?.filter(c => c.is_verified || c.email_verified).length || 0;
-      const newToday = customers?.filter(c => new Date(c.created_at) >= today).length || 0;
-      
-      const completedOrders = orders?.filter(o => o.status === 'completed') || [];
-      const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-
+      // Set customer stats to 0 (guest checkout only)
       setCustomerStats({
-        totalCustomers: customers?.length || 0,
-        verifiedCustomers: verifiedCount,
-        newCustomersToday: newToday,
-        totalOrders: orders?.length || 0,
-        totalRevenue: totalRevenue
+        totalCustomers: 0,
+        verifiedCustomers: 0,
+        newCustomersToday: 0,
       });
+
+      setOrderStats(orderStats);
+      setProductStats(productStats);
+
     } catch (error) {
-      console.error('Error in fetchCustomerStats:', error);
+      console.error('Error in fetchStats:', error);
+      // Set default values on error
+      setCustomerStats({
+        totalCustomers: 0,
+        verifiedCustomers: 0,
+        newCustomersToday: 0,
+      });
+      
+      setOrderStats({
+        totalOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        todayOrders: 0,
+        totalRevenue: 0,
+      });
+
+      setProductStats({
+        totalProducts: 0,
+        activeProducts: 0,
+        lowStockProducts: 0,
+        outOfStockProducts: 0,
+      });
     } finally {
-      setIsLoadingStats(false);
+      setLoading(false);
     }
   };
 
