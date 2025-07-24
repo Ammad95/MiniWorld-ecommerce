@@ -111,8 +111,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Send order confirmation email using EmailService instance
       try {
         // Send order confirmation email
-        const emailService = EmailService.getInstance();
-        await emailService.sendOrderConfirmation(newOrder);
+        await EmailService.sendOrderConfirmation(newOrder);
       } catch (emailError) {
         console.error('Failed to send confirmation email:', emailError);
       }
