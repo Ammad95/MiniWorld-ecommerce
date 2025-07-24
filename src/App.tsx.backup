@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 
 // Context Providers
 import { SupabaseProductProvider } from './context/SupabaseProductContext';
@@ -14,6 +14,8 @@ import CategoryPage from './pages/CategoryPage';
 import ProductDetailsPage from './pages/ProductDetailsPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import JazzCashSuccess from './pages/JazzCashSuccess';
+import JazzCashCancel from './pages/JazzCashCancel';
 
 // Lazy load the entire Admin application
 const AdminApp = lazy(() => import('./AdminApp'));
@@ -50,6 +52,10 @@ function App() {
                 <Route path="/orders" element={<Navigate to="/" replace />} />
                 <Route path="/order/:orderId" element={<Navigate to="/" replace />} />
 
+                {/* JazzCash Payment Routes */}
+                <Route path="/checkout/jazzcash/success" element={<JazzCashSuccess />} />
+                <Route path="/checkout/jazzcash/cancel" element={<JazzCashCancel />} />
+
                 {/* Admin Routes - Code Split */}
                 <Route path="/admin/*" element={
                   <Suspense fallback={<AdminLoadingFallback />}>
@@ -68,4 +74,4 @@ function App() {
   );
 }
 
-export default App;
+export default App; 

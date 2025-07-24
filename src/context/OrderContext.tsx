@@ -4,7 +4,7 @@ import EmailService from '../services/EmailService';
 
 interface OrderContextType {
   state: OrderState;
-  createOrder: (items: CartItem[], shippingAddress: ShippingAddress, paymentInfo: PaymentInfo) => Promise<Order>;
+  createOrder: (orderData: { items: CartItem[]; shippingAddress: ShippingAddress; paymentInfo: PaymentInfo; subtotal: number; tax: number; shipping: number; total: number; }) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   getOrder: (orderId: string) => Order | undefined;
   getUserOrders: () => Order[];
@@ -12,31 +12,24 @@ interface OrderContextType {
   cancelOrder: (orderId: string) => void;
 }
 
-const OrderContext = createContext<OrderContextType | undefined>(undefined);
+export const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 type OrderAction =
   | { type: 'ADD_ORDER'; payload: Order }
   | { type: 'UPDATE_ORDER_STATUS'; payload: { orderId: string; status: OrderStatus } }
   | { type: 'UPDATE_ORDER'; payload: { orderId: string; updates: Partial<Order> } }
-  | { type: 'SET_CURRENT_ORDER'; payload: Order | undefined }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | undefined };
-
-const initialState: OrderState = {
-  orders: [],
-  currentOrder: undefined,
-  loading: false,
-  error: undefined,
-};
 
 const orderReducer = (state: OrderState, action: OrderAction): OrderState => {
   switch (action.type) {
     case 'ADD_ORDER':
       return {
         ...state,
-        orders: [...state.orders, action.payload],
+        orders: [action.payload, ...state.orders],
         currentOrder: action.payload,
-        error: undefined,
+        loading: false,
+        error: undefined
       };
     case 'UPDATE_ORDER_STATUS':
       return {
@@ -46,7 +39,8 @@ const orderReducer = (state: OrderState, action: OrderAction): OrderState => {
             ? { ...order, status: action.payload.status, updatedAt: new Date() }
             : order
         ),
-        error: undefined,
+        loading: false,
+        error: undefined
       };
     case 'UPDATE_ORDER':
       return {
@@ -56,92 +50,74 @@ const orderReducer = (state: OrderState, action: OrderAction): OrderState => {
             ? { ...order, ...action.payload.updates, updatedAt: new Date() }
             : order
         ),
-        error: undefined,
-      };
-    case 'SET_CURRENT_ORDER':
-      return {
-        ...state,
-        currentOrder: action.payload,
+        loading: false,
+        error: undefined
       };
     case 'SET_LOADING':
-      return {
-        ...state,
-        loading: action.payload,
-      };
+      return { ...state, loading: action.payload };
     case 'SET_ERROR':
-      return {
-        ...state,
-        error: action.payload,
-        loading: false,
-      };
+      return { ...state, error: action.payload, loading: false };
     default:
       return state;
   }
 };
 
-// Helper function to calculate order totals
-const calculateOrderTotals = (items: CartItem[]) => {
-  const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const tax = subtotal * 0.08; // 8% tax
-  const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
-  const total = subtotal + tax + shipping;
-  
-  return { subtotal, tax, shipping, total };
-};
-
-// Helper function to generate order number
-const generateOrderNumber = (): string => {
-  const timestamp = Date.now().toString();
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return `MW${timestamp.slice(-6)}${random}`;
+const initialState: OrderState = {
+  orders: [],
+  currentOrder: undefined,
+  loading: false,
+  error: undefined
 };
 
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(orderReducer, initialState);
 
-  const createOrder = async (
-    items: CartItem[], 
-    shippingAddress: ShippingAddress, 
-    paymentInfo: PaymentInfo
-  ): Promise<Order> => {
+  const createOrder = async (orderData: {
+    items: CartItem[];
+    shippingAddress: ShippingAddress;
+    paymentInfo: PaymentInfo;
+    subtotal: number;
+    tax: number;
+    shipping: number;
+    total: number;
+  }): Promise<Order> => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    
+
     try {
-      // Simulate payment processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const orderNumber = `MW${Date.now()}${Math.floor(Math.random() * 1000)}`;
       
-      const { subtotal, tax, shipping, total } = calculateOrderTotals(items);
       const estimatedDelivery = new Date();
-      estimatedDelivery.setDate(estimatedDelivery.getDate() + 7); // 7 days from now
-      
+      estimatedDelivery.setDate(estimatedDelivery.getDate() + Math.floor(Math.random() * 5) + 3);
+
       const newOrder: Order = {
-        id: Date.now().toString(),
-        orderNumber: generateOrderNumber(),
-        items,
-        subtotal,
-        tax,
-        shipping,
-        total,
-        shippingAddress,
-        paymentInfo,
-        status: paymentInfo.method === 'cash_on_delivery' ? 'confirmed' : 'pending',
+        id: Math.random().toString(36).substr(2, 9),
+        orderNumber,
+        items: orderData.items,
+        subtotal: orderData.subtotal,
+        tax: orderData.tax,
+        shipping: orderData.shipping,
+        total: orderData.total,
+        shippingAddress: orderData.shippingAddress,
+        paymentInfo: orderData.paymentInfo,
+        status: orderData.paymentInfo.method === 'cash_on_delivery' ? 'confirmed' : 'pending',
         createdAt: new Date(),
         updatedAt: new Date(),
         estimatedDelivery,
+        notes: orderData.paymentInfo.method === 'cash_on_delivery' 
+          ? 'Cash on Delivery - Payment due upon delivery' 
+          : 'Bank Transfer - Awaiting payment confirmation'
       };
-      
-      dispatch({ type: 'ADD_ORDER', payload: newOrder });
-      
-      // Send order confirmation email
+
+      // Send order confirmation email using EmailService instance
       try {
-        await EmailService.sendOrderConfirmation(newOrder);
-      } catch (error) {
-        console.error('Failed to send order confirmation email:', error);
-        // Don't fail the order creation if email fails
+        // Send order confirmation email
+        const emailService = EmailService.getInstance();
+        await emailService.sendOrderConfirmation(newOrder);
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
       }
-      
-      dispatch({ type: 'SET_LOADING', payload: false });
-      
+
+      dispatch({ type: 'ADD_ORDER', payload: newOrder });
       return newOrder;
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to create order' });
@@ -150,17 +126,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    const currentOrder = state.orders.find(order => order.id === orderId);
-    const oldStatus = currentOrder?.status;
-    
     dispatch({ type: 'UPDATE_ORDER_STATUS', payload: { orderId, status } });
-    
-    // Send status update email if status changed
-    if (currentOrder && oldStatus && oldStatus !== status) {
-      EmailService.sendStatusUpdate(currentOrder, oldStatus, status).catch(error => {
-        console.error('Failed to send status update email:', error);
-      });
-    }
   };
 
   const getOrder = (orderId: string): Order | undefined => {
@@ -168,44 +134,30 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const getUserOrders = (): Order[] => {
-    return state.orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return state.orders;
   };
 
   const addTrackingNumber = (orderId: string, trackingNumber: string) => {
-    const currentOrder = state.orders.find(order => order.id === orderId);
-    const oldStatus = currentOrder?.status;
-    
     dispatch({ 
       type: 'UPDATE_ORDER', 
       payload: { 
         orderId, 
-        updates: { trackingNumber, status: 'shipped' as OrderStatus } 
+        updates: { 
+          trackingNumber,
+          status: 'shipped' as OrderStatus
+        } 
       } 
     });
-    
-    // Send shipping notification email
-    if (currentOrder && oldStatus && oldStatus !== 'shipped') {
-      const updatedOrder = { ...currentOrder, trackingNumber, status: 'shipped' as OrderStatus };
-      EmailService.sendStatusUpdate(updatedOrder, oldStatus, 'shipped').catch(error => {
-        console.error('Failed to send shipping notification email:', error);
-      });
-    }
   };
 
   const cancelOrder = (orderId: string) => {
-    const order = getOrder(orderId);
-    if (order && ['pending', 'confirmed'].includes(order.status)) {
-      const oldStatus = order.status;
-      dispatch({ 
-        type: 'UPDATE_ORDER_STATUS', 
-        payload: { orderId, status: 'cancelled' } 
-      });
-      
-      // Send cancellation email
-      EmailService.sendStatusUpdate(order, oldStatus, 'cancelled').catch(error => {
-        console.error('Failed to send cancellation email:', error);
-      });
-    }
+    dispatch({ 
+      type: 'UPDATE_ORDER_STATUS', 
+      payload: { 
+        orderId, 
+        status: 'cancelled' 
+      } 
+    });
   };
 
   const value: OrderContextType = {
@@ -215,7 +167,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     getOrder,
     getUserOrders,
     addTrackingNumber,
-    cancelOrder,
+    cancelOrder
   };
 
   return (
@@ -225,10 +177,10 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   );
 };
 
-export const useOrder = (): OrderContextType => {
+export const useOrder = () => {
   const context = useContext(OrderContext);
   if (!context) {
     throw new Error('useOrder must be used within an OrderProvider');
   }
   return context;
-}; 
+};

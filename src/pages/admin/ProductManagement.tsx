@@ -29,7 +29,7 @@ const ProductManagement: React.FC = () => {
   };
 
   const formatPrice = (price: number) => {
-    return `Rs. ${price.toLocaleString('en-PK')}`;
+    return `PKR ${price.toLocaleString('en-PK')}`;
   };
 
   return (

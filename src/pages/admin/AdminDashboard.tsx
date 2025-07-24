@@ -143,7 +143,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return `Rs. ${amount.toLocaleString()}`;
+    return `PKR ${amount.toLocaleString()}`;
   };
 
   const getStatusColor = (status: string) => {

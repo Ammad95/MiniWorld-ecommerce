@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { CartState, Product } from '../types';
+import { CartState, CartItem, Product } from '../types';
 
 type CartAction =
   | { type: 'ADD_ITEM'; payload: { product: Product; quantity: number } }
@@ -25,6 +25,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       const existingItem = state.items.find(item => item.product.id === product.id);
       
       if (existingItem) {
+        // Update quantity of existing item
         const updatedItems = state.items.map(item =>
           item.product.id === product.id
             ? { ...item, quantity: item.quantity + quantity }
@@ -41,6 +42,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           itemCount: updatedItems.reduce((count, item) => count + item.quantity, 0)
         };
       } else {
+        // Add new item
         const newItems = [...state.items, { product, quantity }];
         const newTotal = newItems.reduce((total, item) => 
           total + (item.product.price * item.quantity), 0
@@ -71,6 +73,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       const { id, quantity } = action.payload;
       
       if (quantity <= 0) {
+        // Remove item if quantity is 0 or less
         const filteredItems = state.items.filter(item => item.product.id !== id);
         const newTotal = filteredItems.reduce((total, item) => 
           total + (item.product.price * item.quantity), 0
@@ -118,6 +121,7 @@ const initialState: CartState = {
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
 
+  // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('miniworld-cart');
     if (savedCart) {
@@ -130,15 +134,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('miniworld-cart', JSON.stringify(state));
   }, [state]);
 
   const addItem = (product: Product, quantity: number = 1) => {
+    // Check if product is in stock
     if (!product.inStock || product.stockQuantity <= 0) {
       return { success: false, message: 'Product is out of stock' };
     }
 
+    // Check if we have enough stock
     const existingItem = state.items.find(item => item.product.id === product.id);
     const currentQuantity = existingItem ? existingItem.quantity : 0;
     const totalQuantity = currentQuantity + quantity;
@@ -159,11 +166,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateQuantity = (id: string, quantity: number) => {
+    // Find the product to check stock
     const cartItem = state.items.find(item => item.product.id === id);
     if (!cartItem) {
       return { success: false, message: 'Item not found in cart' };
     }
 
+    // Check if we have enough stock for the new quantity
     if (quantity > cartItem.product.stockQuantity) {
       return { 
         success: false, 
@@ -197,3 +206,10 @@ export const useCart = () => {
   }
   return context;
 };
+
+// Export the cart state for direct access
+export const cart = {
+  items: [],
+  total: 0,
+  itemCount: 0
+}; 

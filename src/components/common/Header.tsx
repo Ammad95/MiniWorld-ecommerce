@@ -22,7 +22,7 @@ interface Announcement {
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [currentAnnouncement, setCurrentAnnouncement] = useState<string>('✨ Free shipping on orders over $100 | New arrivals weekly');
+  const [currentAnnouncement, setCurrentAnnouncement] = useState<string>('✨ Free shipping on orders over PKR 5,000 | New arrivals weekly');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
   const { state } = useCart();

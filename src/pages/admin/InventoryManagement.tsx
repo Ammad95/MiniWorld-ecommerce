@@ -252,7 +252,7 @@ const InventoryManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-deepPurple-100">Total Inventory Value</p>
-              <p className="text-3xl font-bold">Rs. {totalStockValue.toLocaleString('en-PK')}</p>
+              <p className="text-3xl font-bold">PKR {totalStockValue.toLocaleString('en-PK')}</p>
             </div>
             <FiTrendingUp className="w-12 h-12 text-deepPurple-200" />
           </div>
@@ -344,7 +344,7 @@ const InventoryManagement: React.FC = () => {
                           </div>
                           <div>
                             <div className="font-medium text-gray-900">{product.name}</div>
-                            <div className="text-sm text-gray-500">Rs. {product.price.toLocaleString('en-PK')}</div>
+                            <div className="text-sm text-gray-500">PKR {product.price.toLocaleString('en-PK')}</div>
                           </div>
                         </div>
                       </td>
@@ -406,7 +406,7 @@ const InventoryManagement: React.FC = () => {
                       </td>
                       
                       <td className="py-4 px-6 text-center font-medium text-gray-900">
-                        Rs. {(product.stockQuantity * product.price).toLocaleString('en-PK')}
+                        PKR {(product.stockQuantity * product.price).toLocaleString('en-PK')}
                       </td>
                       
                       <td className="py-4 px-6 text-center">

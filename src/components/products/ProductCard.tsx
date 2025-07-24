@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FiStar, FiShoppingCart, FiHeart, FiCheck, FiAlertTriangle, FiX } from 'react-icons/fi';
+import { FiStar, FiShoppingCart, FiCheck, FiAlertTriangle, FiX } from 'react-icons/fi';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
+import { formatPKRProduct } from '../../lib/currency';
 
 interface ProductCardProps {
   product: Product;
@@ -15,16 +16,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (product.stockQuantity > 0) {
+    if (product.inStock) {
       addItem(product, 1);
     }
   };
 
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Wishlist functionality would be implemented here
-  };
+
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -124,15 +121,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
 
-        {/* Wishlist Button - Clean design */}
-        <motion.button
-          onClick={handleWishlist}
-          className="absolute top-4 right-4 z-20 p-2 bg-white/90 backdrop-blur-sm rounded-full border border-gray-200 hover:border-gray-300 text-gray-600 hover:text-red-500 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-sm"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <FiHeart className="w-4 h-4" />
-        </motion.button>
+
 
         {/* Product Image - Clean presentation */}
         <div className="relative h-64 overflow-hidden bg-gray-50">
@@ -185,11 +174,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className={`text-2xl font-bold ${isOutOfStock ? 'text-gray-400' : 'text-deepPurple-900'}`}>
-                Rs. {product.price.toLocaleString('en-PK')}
+                {formatPKRProduct(product.price)}
               </span>
               {product.originalPrice && (
                 <span className="text-sm text-deepPurple-500 line-through">
-                  Rs. {product.originalPrice.toLocaleString('en-PK')}
+                  {formatPKRProduct(product.originalPrice)}
                 </span>
               )}
             </div>

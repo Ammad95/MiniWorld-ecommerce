@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiStar, FiHeart, FiShoppingCart, FiCheck, FiMinus, FiPlus } from 'react-icons/fi';
+import { FiStar, FiShoppingCart, FiCheck, FiMinus, FiPlus } from 'react-icons/fi';
 import ImageGallery from 'react-image-gallery';
 import 'react-image-gallery/styles/css/image-gallery.css';
 import { useCart } from '../context/CartContext';
@@ -196,16 +196,16 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = () => {
               {/* Price */}
               <div className="flex items-center space-x-4 mb-6">
                 <span className="text-3xl font-bold text-navy-900">
-                  ${product.price.toFixed(2)}
+                  PKR {product.price.toLocaleString('en-PK')}
                 </span>
                 {product.originalPrice && (
                   <span className="text-xl text-navy-500 line-through">
-                    ${product.originalPrice.toFixed(2)}
+                    PKR {product.originalPrice.toLocaleString('en-PK')}
                   </span>
                 )}
                 {product.originalPrice && (
                   <span className="px-2 py-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-bold rounded">
-                    Save ${(product.originalPrice - product.price).toFixed(2)}
+                    Save PKR {(product.originalPrice - product.price).toLocaleString('en-PK')}
                   </span>
                 )}
               </div>
@@ -272,7 +272,7 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = () => {
                 <div className="flex-1">
                   <div className="text-navy-900 font-medium mb-2">Total</div>
                   <div className="text-2xl font-bold text-orange-600">
-                    Rs. {(product.price * quantity).toLocaleString('en-PK')}
+                    PKR {(product.price * quantity).toLocaleString('en-PK')}
                   </div>
                 </div>
               </div>
@@ -309,15 +309,6 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = () => {
                       <span>{product.inStock ? 'Add to Cart' : 'Out of Stock'}</span>
                     </motion.div>
                   )}
-                </motion.button>
-
-                <motion.button
-                  className="px-6 py-4 border-2 border-orange-400 text-orange-600 font-semibold rounded-lg hover:bg-orange-400 hover:text-white transition-all duration-300 flex items-center justify-center space-x-2"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <FiHeart className="w-5 h-5" />
-                  <span>Add to Wishlist</span>
                 </motion.button>
               </div>
             </div>
@@ -357,9 +348,9 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = () => {
                     <h3 className="text-xl font-bold text-navy-900 mb-2">{relatedProduct.name}</h3>
                     <p className="text-navy-600 text-sm">{relatedProduct.description}</p>
                     <div className="flex items-center space-x-2 mt-4">
-                      <span className="text-navy-900 font-bold">${relatedProduct.price.toFixed(2)}</span>
+                      <span className="text-navy-900 font-bold">PKR {relatedProduct.price.toLocaleString('en-PK')}</span>
                       {relatedProduct.originalPrice && (
-                        <span className="text-navy-500 text-sm line-through">${relatedProduct.originalPrice.toFixed(2)}</span>
+                        <span className="text-navy-500 text-sm line-through">PKR {relatedProduct.originalPrice.toLocaleString('en-PK')}</span>
                       )}
                     </div>
                   </div>

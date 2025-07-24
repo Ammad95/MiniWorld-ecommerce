@@ -90,7 +90,7 @@ const CartPage: React.FC = () => {
                       {item.product.description}
                     </p>
                     <p className="text-orange-600 font-bold">
-                      Rs. {item.product.price.toLocaleString('en-PK')}
+                      PKR {item.product.price.toLocaleString('en-PK')}
                     </p>
                     
                     {/* Stock availability indicator */}
@@ -158,7 +158,7 @@ const CartPage: React.FC = () => {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-navy-600">
                   <span>Subtotal ({state.itemCount} items)</span>
-                  <span>Rs. {state.total.toLocaleString('en-PK')}</span>
+                  <span>PKR {state.total.toLocaleString('en-PK')}</span>
                 </div>
                 <div className="flex justify-between text-navy-600">
                   <span>Shipping</span>
@@ -167,7 +167,7 @@ const CartPage: React.FC = () => {
                 <div className="border-t border-navy-200 pt-4">
                   <div className="flex justify-between text-navy-900 text-lg font-bold">
                     <span>Total</span>
-                    <span>Rs. {state.total.toLocaleString('en-PK')}</span>
+                    <span>PKR {state.total.toLocaleString('en-PK')}</span>
                   </div>
                 </div>
               </div>

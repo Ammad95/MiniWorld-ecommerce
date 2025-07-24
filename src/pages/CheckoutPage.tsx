@@ -1,42 +1,37 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { 
-  FiEdit3,
-  FiMail, 
-  FiPhone, 
-  FiMapPin, 
   FiShoppingBag, 
-  FiCheck, 
-  FiArrowRight, 
-  FiArrowLeft,
-  FiSmartphone,
-  FiDollarSign,
-  FiLock
+  FiDollarSign, 
+  FiUser, 
+  FiMapPin,
+  FiShield,
+  FiCheck,
+  FiTruck,
+  FiPackage,
+  FiPhone,
+  FiMail,
+  FiHome
 } from 'react-icons/fi';
 import { useCart } from '../context/CartContext';
 import { useOrder } from '../context/OrderContext';
 import { usePayment } from '../context/PaymentContext';
-import { ShippingAddress, JazzCashInfo, PaymentMethod } from '../types';
-import { jazzCashService } from '../services/JazzCashService';
+import { ShippingAddress, PaymentMethod } from '../types';
 
 const CheckoutPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { state: cartState, clearCart } = useCart();
-  const { state: orderState, createOrder } = useOrder();
-  const { getActiveAccounts } = usePayment();
-  
+  const { state: cart, clearCart } = useCart();
+  const { createOrder } = useOrder();
+  const { paymentAccounts } = usePayment();
+
   // Get active accounts for bank transfer options
-  const activeAccounts = getActiveAccounts().filter(account => 
+  const bankTransferAccounts = paymentAccounts.filter(
+    (account) => account.isActive && 
     account.paymentMethodType === 'bank_transfer'
   );
-  
+
   const [currentStep, setCurrentStep] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash_on_delivery');
-  const [selectedAccountId, setSelectedAccountId] = useState<string>(activeAccounts[0]?.id || '');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [orderComplete, setOrderComplete] = useState(false);
-  
+  const [selectedBankAccount, setSelectedBankAccount] = useState<string | null>(null);
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     fullName: '',
     phone: '',
@@ -45,604 +40,588 @@ const CheckoutPage: React.FC = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: 'United States',
+    country: 'Pakistan'
   });
-  
-  const [jazzCashInfo, setJazzCashInfo] = useState<JazzCashInfo>({
-    mobileNumber: '',
-    cnic: '',
-    customerName: '',
-  });
-  
+
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Calculate totals
-  const subtotal = cartState.total;
-  const tax = subtotal * 0.08;
-  const shipping = subtotal > 27750 ? 0 : 2775; // Rs. 27,750 (equivalent to $100) for free shipping, Rs. 2,775 shipping charge
+  const subtotal = cart.total;
+  const tax = subtotal * 0.1; // 10% tax
+  const shipping = subtotal >= 5000 ? 0 : 150; // Free shipping over PKR 5,000
   const total = subtotal + tax + shipping;
-  
-  // Format currency in PKR
-  const formatCurrency = (amount: number): string => {
-    return `Rs. ${amount.toLocaleString('en-PK')}`;
-  };
-  
-  const handleShippingSubmit = (e: React.FormEvent) => {
+
+  const formatCurrency = (amount: number) => `PKR ${amount.toLocaleString('en-PK')}`;
+
+  useEffect(() => {
+    if (bankTransferAccounts.length > 0) {
+      setSelectedBankAccount(bankTransferAccounts[0].id);
+    }
+  }, [bankTransferAccounts]);
+
+  const handleAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate shipping address
+    const newErrors: {[key: string]: string} = {};
+    
+    if (!shippingAddress.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!shippingAddress.phone.trim()) newErrors.phone = 'Phone number is required';
+    if (!shippingAddress.email.trim()) newErrors.email = 'Email is required';
+    if (!shippingAddress.address.trim()) newErrors.address = 'Address is required';
+    if (!shippingAddress.city.trim()) newErrors.city = 'City is required';
+    if (!shippingAddress.state.trim()) newErrors.state = 'State is required';
+    if (!shippingAddress.zipCode.trim()) newErrors.zipCode = 'ZIP code is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
     setCurrentStep(2);
   };
-  
+
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsProcessing(true);
-    
+    setIsSubmitting(true);
+
     try {
-      let paymentInfo: any = {
+      const paymentInfo = {
         method: paymentMethod,
-        selectedAccount: paymentMethod === 'bank_transfer' ? 
-          activeAccounts.find(acc => acc.id === selectedAccountId) : undefined,
-        jazzCash: paymentMethod === 'jazzcash' ? jazzCashInfo : undefined,
+        selectedAccount: paymentMethod === 'bank_transfer' ?
+          bankTransferAccounts.find(acc => acc.id === selectedBankAccount) :
+          undefined,
       };
-      
-      // Handle JazzCash payment
-      if (paymentMethod === 'jazzcash') {
-        const orderNumber = `MW${Date.now()}`;
-        const jazzCashRequest = {
-          amount: total,
-          billReference: orderNumber,
-          description: `MiniHub Order - ${cartState.items.length} item(s)`,
-          currency: 'PKR',
-          customerInfo: jazzCashInfo,
-          shippingAddress: shippingAddress,
-          orderNumber: orderNumber,
-          language: 'EN',
-        };
-        
-        const jazzCashResponse = await jazzCashService.processPayment(jazzCashRequest);
-        paymentInfo.jazzCashResponse = jazzCashResponse;
-        
-        // If payment requires redirection
-        if (jazzCashResponse.redirectUrl) {
-          // Open JazzCash payment page
-          window.open(jazzCashResponse.redirectUrl, '_blank');
-          
-          // For sandbox testing, we'll simulate successful payment after a delay
-          setTimeout(() => {
-            alert('JazzCash payment processed successfully! (Sandbox Mode)');
-          }, 3000);
-        }
-        
-        // Check if payment was successful
-        if (jazzCashResponse.status === 'failed') {
-          throw new Error(jazzCashResponse.responseMessage);
-        }
-      }
-      
-      await createOrder(cartState.items, shippingAddress, paymentInfo);
+
+      // Create order
+      const orderData = {
+        items: cart.items,
+        shippingAddress,
+        paymentInfo,
+        subtotal,
+        tax,
+        shipping,
+        total
+      };
+
+      await createOrder(orderData);
+
+      // Clear cart and show success
       clearCart();
-      setOrderComplete(true);
-      setCurrentStep(4);
+      setCurrentStep(3);
     } catch (error) {
       console.error('Order creation failed:', error);
-      alert(`Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert('There was an error processing your order. Please try again.');
     } finally {
-      setIsProcessing(false);
+      setIsSubmitting(false);
     }
   };
-  
+
   const steps = [
     { number: 1, title: 'Shipping Address', icon: FiMapPin },
     { number: 2, title: 'Payment Method', icon: FiShoppingBag },
-    { number: 3, title: 'Review Order', icon: FiCheck },
-    { number: 4, title: 'Confirmation', icon: FiCheck },
+    { number: 3, title: 'Order Complete', icon: FiCheck },
   ];
-  
-  if (cartState.items.length === 0 && !orderComplete) {
+
+  if (cart.items.length === 0 && currentStep !== 3) {
     return (
-      <div className="min-h-screen bg-navy-50 py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold text-navy-900 mb-4">Your cart is empty</h1>
-          <p className="text-navy-600 mb-8">Add some items to your cart before checking out.</p>
-          <button 
-            onClick={() => navigate('/')}
-            className="btn-primary"
-          >
-            Continue Shopping
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-deepPurple-50 to-white pt-20">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <FiShoppingBag className="w-16 h-16 mx-auto text-navy-400 mb-4" />
+            <h2 className="text-2xl font-bold text-navy-900 mb-2">Your cart is empty</h2>
+            <p className="text-navy-600 mb-6">Add some items to your cart before checkout</p>
+            <a 
+              href="/" 
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-deepPurple-600 to-purple-600 text-white font-medium rounded-lg hover:from-deepPurple-700 hover:to-purple-700 transition-all duration-200"
+            >
+              Continue Shopping
+            </a>
+          </div>
         </div>
       </div>
     );
   }
-  
+
   return (
-    <div className="min-h-screen bg-navy-50 py-20">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-deepPurple-50 to-white pt-20">
+      <div className="container mx-auto px-4 py-8">
         {/* Progress Steps */}
-        <div className="mb-12">
-          <div className="flex items-center justify-center space-x-4 mb-8">
+        <div className="mb-8">
+          <div className="flex items-center justify-center space-x-4 mb-4">
             {steps.map((step, index) => (
               <React.Fragment key={step.number}>
-                <div className={`flex items-center space-x-2 p-3 rounded-lg ${
-                  currentStep >= step.number 
-                    ? 'bg-orange-100 text-orange-600' 
-                    : 'bg-white text-navy-400'
+                <div className={`flex items-center space-x-2 ${
+                  currentStep >= step.number ? 'text-deepPurple-600' : 'text-navy-400'
                 }`}>
-                  <step.icon className="w-5 h-5" />
-                  <span className="font-medium text-sm">{step.title}</span>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    currentStep >= step.number 
+                      ? 'bg-gradient-to-r from-deepPurple-600 to-purple-600 text-white' 
+                      : 'bg-navy-100 text-navy-400'
+                  }`}>
+                    {currentStep > step.number ? (
+                      <FiCheck className="w-5 h-5" />
+                    ) : (
+                      <step.icon className="w-5 h-5" />
+                    )}
+                  </div>
+                  <span className="font-medium hidden sm:block">{step.title}</span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`w-12 h-0.5 ${
-                    currentStep > step.number ? 'bg-orange-400' : 'bg-navy-200'
+                  <div className={`w-8 h-px ${
+                    currentStep > step.number ? 'bg-deepPurple-600' : 'bg-navy-200'
                   }`} />
                 )}
               </React.Fragment>
             ))}
           </div>
         </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
-            <AnimatePresence mode="wait">
-              {/* Step 1: Shipping Address */}
-              {currentStep === 1 && (
-                <motion.div
-                  key="shipping"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="bg-white rounded-lg shadow-soft p-8"
-                >
-                  <h2 className="text-2xl font-bold text-navy-900 mb-6">Shipping Address</h2>
-                  
-                  <form onSubmit={handleShippingSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="relative">
-                        <FiEdit3 className="absolute left-3 top-3 w-5 h-5 text-navy-400" />
-                        <input
-                          type="text"
-                          placeholder="Full Name"
-                          value={shippingAddress.fullName}
-                          onChange={(e) => setShippingAddress({...shippingAddress, fullName: e.target.value})}
-                          className="w-full pl-10 pr-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                          required
-                        />
-                      </div>
-                      
-                      <div className="relative">
-                        <FiPhone className="absolute left-3 top-3 w-5 h-5 text-navy-400" />
-                        <input
-                          type="tel"
-                          placeholder="Phone Number"
-                          value={shippingAddress.phone}
-                          onChange={(e) => setShippingAddress({...shippingAddress, phone: e.target.value})}
-                          className="w-full pl-10 pr-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                          required
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="relative">
-                      <FiMail className="absolute left-3 top-3 w-5 h-5 text-navy-400" />
-                      <input
-                        type="email"
-                        placeholder="Email Address"
-                        value={shippingAddress.email}
-                        onChange={(e) => setShippingAddress({...shippingAddress, email: e.target.value})}
-                        className="w-full pl-10 pr-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="relative">
-                      <FiMapPin className="absolute left-3 top-3 w-5 h-5 text-navy-400" />
+            {/* Step 1: Shipping Address */}
+            {currentStep === 1 && (
+              <motion.div
+                key="shipping"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-lg shadow-soft p-8"
+              >
+                <h2 className="text-2xl font-bold text-navy-900 mb-6">Shipping Address</h2>
+                
+                <form onSubmit={handleAddressSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-navy-700 mb-2">
+                        <FiUser className="inline w-4 h-4 mr-1" />
+                        Full Name *
+                      </label>
                       <input
                         type="text"
-                        placeholder="Street Address"
-                        value={shippingAddress.address}
-                        onChange={(e) => setShippingAddress({...shippingAddress, address: e.target.value})}
-                        className="w-full pl-10 pr-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        required
+                        value={shippingAddress.fullName}
+                        onChange={(e) => setShippingAddress({...shippingAddress, fullName: e.target.value})}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent ${
+                          errors.fullName ? 'border-red-500' : 'border-navy-200'
+                        }`}
+                        placeholder="Enter your full name"
                       />
+                      {errors.fullName && (
+                        <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>
+                      )}
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                    <div>
+                      <label className="block text-sm font-medium text-navy-700 mb-2">
+                        <FiPhone className="inline w-4 h-4 mr-1" />
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        value={shippingAddress.phone}
+                        onChange={(e) => setShippingAddress({...shippingAddress, phone: e.target.value})}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent ${
+                          errors.phone ? 'border-red-500' : 'border-navy-200'
+                        }`}
+                        placeholder="+92 300 1234567"
+                      />
+                      {errors.phone && (
+                        <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-navy-700 mb-2">
+                      <FiMail className="inline w-4 h-4 mr-1" />
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      value={shippingAddress.email}
+                      onChange={(e) => setShippingAddress({...shippingAddress, email: e.target.value})}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent ${
+                        errors.email ? 'border-red-500' : 'border-navy-200'
+                      }`}
+                      placeholder="your@email.com"
+                    />
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-navy-700 mb-2">
+                      <FiHome className="inline w-4 h-4 mr-1" />
+                      Street Address *
+                    </label>
+                    <textarea
+                      value={shippingAddress.address}
+                      onChange={(e) => setShippingAddress({...shippingAddress, address: e.target.value})}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent ${
+                        errors.address ? 'border-red-500' : 'border-navy-200'
+                      }`}
+                      rows={3}
+                      placeholder="House/flat number, street name, area"
+                    />
+                    {errors.address && (
+                      <p className="mt-1 text-sm text-red-600">{errors.address}</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-navy-700 mb-2">City *</label>
                       <input
                         type="text"
-                        placeholder="City"
                         value={shippingAddress.city}
                         onChange={(e) => setShippingAddress({...shippingAddress, city: e.target.value})}
-                        className="w-full px-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        required
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent ${
+                          errors.city ? 'border-red-500' : 'border-navy-200'
+                        }`}
+                        placeholder="Karachi"
                       />
-                      
+                      {errors.city && (
+                        <p className="mt-1 text-sm text-red-600">{errors.city}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-navy-700 mb-2">State/Province *</label>
                       <input
                         type="text"
-                        placeholder="State"
                         value={shippingAddress.state}
                         onChange={(e) => setShippingAddress({...shippingAddress, state: e.target.value})}
-                        className="w-full px-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        required
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent ${
+                          errors.state ? 'border-red-500' : 'border-navy-200'
+                        }`}
+                        placeholder="Sindh"
                       />
-                      
+                      {errors.state && (
+                        <p className="mt-1 text-sm text-red-600">{errors.state}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-navy-700 mb-2">ZIP Code *</label>
                       <input
                         type="text"
-                        placeholder="ZIP Code"
                         value={shippingAddress.zipCode}
                         onChange={(e) => setShippingAddress({...shippingAddress, zipCode: e.target.value})}
-                        className="w-full px-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        required
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-deepPurple-500 focus:border-transparent ${
+                          errors.zipCode ? 'border-red-500' : 'border-navy-200'
+                        }`}
+                        placeholder="75400"
                       />
+                      {errors.zipCode && (
+                        <p className="mt-1 text-sm text-red-600">{errors.zipCode}</p>
+                      )}
                     </div>
-                    
-                    <div className="flex justify-end">
-                      <button
-                        type="submit"
-                        className="btn-primary flex items-center space-x-2"
-                      >
-                        <span>Continue to Payment</span>
-                        <FiArrowRight className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </form>
-                </motion.div>
-              )}
-              
-              {/* Step 2: Payment Method */}
-              {currentStep === 2 && (
-                <motion.div
-                  key="payment"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="bg-white rounded-lg shadow-soft p-8"
-                >
-                  <h2 className="text-2xl font-bold text-navy-900 mb-6">Payment Method</h2>
-                  
-                  {/* Payment Method Selection */}
-                  <div className="space-y-4 mb-8">
-                    {/* Cash on Delivery - Priority Option */}
-                    <div 
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        paymentMethod === 'cash_on_delivery' 
-                          ? 'border-orange-500 bg-orange-50' 
-                          : 'border-navy-200 hover:border-orange-300'
-                      }`}
-                      onClick={() => setPaymentMethod('cash_on_delivery')}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <FiShoppingBag className="w-6 h-6 text-orange-600" />
-                        <div>
-                          <h3 className="font-semibold text-navy-900">Cash on Delivery</h3>
-                          <p className="text-sm text-navy-600">Pay when you receive your order</p>
-                        </div>
-                        <div className="ml-auto">
-                          <div className="bg-gradient-to-r from-green-500 to-green-600 text-white px-2 py-1 rounded text-xs font-semibold">
-                            ✨ Recommended
-                          </div>
-                        </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-deepPurple-600 to-purple-600 text-white font-medium rounded-lg hover:from-deepPurple-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Continue to Payment
+                  </button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Step 2: Payment Method */}
+            {currentStep === 2 && (
+              <motion.div
+                key="payment"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-lg shadow-soft p-8"
+              >
+                <h2 className="text-2xl font-bold text-navy-900 mb-6">Payment Method</h2>
+                
+                {/* Payment Method Selection */}
+                <div className="space-y-4 mb-8">
+                  {/* Cash on Delivery - Priority Option */}
+                  <div 
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      paymentMethod === 'cash_on_delivery' 
+                        ? 'border-orange-500 bg-orange-50' 
+                        : 'border-navy-200 hover:border-orange-300'
+                    }`}
+                    onClick={() => setPaymentMethod('cash_on_delivery')}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <FiShoppingBag className="w-6 h-6 text-orange-600" />
+                      <div>
+                        <h3 className="font-semibold text-navy-900">Cash on Delivery</h3>
+                        <p className="text-sm text-navy-600">Pay when you receive your order</p>
                       </div>
-                    </div>
-                    
-                    {/* JazzCash Mobile Wallet */}
-                    <div 
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        paymentMethod === 'jazzcash' 
-                          ? 'border-orange-500 bg-orange-50' 
-                          : 'border-navy-200 hover:border-orange-300'
-                      }`}
-                      onClick={() => setPaymentMethod('jazzcash')}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <FiSmartphone className="w-6 h-6 text-orange-600" />
-                        <div>
-                          <h3 className="font-semibold text-navy-900">JazzCash Mobile Wallet</h3>
-                          <p className="text-sm text-navy-600">Pay with your JazzCash mobile wallet</p>
-                        </div>
-                        <div className="ml-auto">
-                          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-2 py-1 rounded text-xs font-semibold">
-                            🇵🇰 Pakistani
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Bank Transfer */}
-                    <div 
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        paymentMethod === 'bank_transfer' 
-                          ? 'border-orange-500 bg-orange-50' 
-                          : 'border-navy-200 hover:border-orange-300'
-                      }`}
-                      onClick={() => setPaymentMethod('bank_transfer')}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <FiDollarSign className="w-6 h-6 text-orange-600" />
-                        <div>
-                          <h3 className="font-semibold text-navy-900">Bank Transfer</h3>
-                          <p className="text-sm text-navy-600">Transfer directly to our account</p>
+                      <div className="ml-auto">
+                        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white px-2 py-1 rounded text-xs font-semibold">
+                          ✨ Recommended
                         </div>
                       </div>
                     </div>
                   </div>
                   
-                  <form onSubmit={handlePaymentSubmit} className="space-y-6">
-                    {/* Cash on Delivery - Enhanced Information */}
-                    {paymentMethod === 'cash_on_delivery' && (
-                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <FiShoppingBag className="w-5 h-5 text-green-600" />
-                          <h4 className="font-semibold text-green-900">Cash on Delivery Selected</h4>
-                        </div>
-                        <p className="text-sm text-green-800 mb-3">
-                          Pay in cash when your order is delivered to your doorstep. 
-                          Please have the exact amount ready for our delivery partner.
-                        </p>
-                        <div className="bg-green-100 p-3 rounded border border-green-300">
-                          <h5 className="font-medium text-green-900 mb-2">💡 Important Notes:</h5>
-                          <ul className="text-sm text-green-800 space-y-1">
-                            <li>• No advance payment required</li>
-                            <li>• Verify your order before payment</li>
-                            <li>• Cash payment only (no cheques accepted)</li>
-                            <li>• Keep exact change ready for convenience</li>
-                          </ul>
-                        </div>
+                  {/* Bank Transfer */}
+                  <div 
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      paymentMethod === 'bank_transfer' 
+                        ? 'border-orange-500 bg-orange-50' 
+                        : 'border-navy-200 hover:border-orange-300'
+                    }`}
+                    onClick={() => setPaymentMethod('bank_transfer')}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <FiDollarSign className="w-6 h-6 text-orange-600" />
+                      <div>
+                        <h3 className="font-semibold text-navy-900">Bank Transfer</h3>
+                        <p className="text-sm text-navy-600">Transfer directly to our account</p>
                       </div>
-                    )}
-                      
-                    {/* JazzCash Mobile Wallet */}
-                    {paymentMethod === 'jazzcash' && (
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-2 mb-4">
-                          <FiLock className="w-4 h-4 text-green-600" />
-                          <span className="text-sm text-green-600">JazzCash payments are secured by bank-grade encryption</span>
-                        </div>
-                        
-                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                          <h4 className="font-semibold text-purple-900 mb-2">💳 About JazzCash</h4>
-                          <p className="text-sm text-purple-700">
-                            JazzCash is Pakistan's leading mobile wallet service. Pay instantly using your mobile number 
-                            without entering card details.
-                          </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-navy-700 mb-2">
-                              Customer Name *
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Enter your full name"
-                              value={jazzCashInfo.customerName}
-                              onChange={(e) => setJazzCashInfo({...jazzCashInfo, customerName: e.target.value})}
-                              className="w-full px-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                              required
-                            />
-                          </div>
-                          
-                          <div>
-                            <label className="block text-sm font-medium text-navy-700 mb-2">
-                              Mobile Number *
-                            </label>
-                            <input
-                              type="tel"
-                              placeholder="03XXXXXXXXX"
-                              value={jazzCashInfo.mobileNumber}
-                              onChange={(e) => setJazzCashInfo({...jazzCashInfo, mobileNumber: e.target.value})}
-                              className="w-full px-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                              pattern="[0-9]{11}"
-                              maxLength={11}
-                              required
-                            />
-                            <p className="text-xs text-navy-500 mt-1">
-                              Enter your 11-digit mobile number (e.g., 03001234567)
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-navy-700 mb-2">
-                            CNIC Number (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="12345-1234567-1"
-                            value={jazzCashInfo.cnic}
-                            onChange={(e) => setJazzCashInfo({...jazzCashInfo, cnic: e.target.value})}
-                            className="w-full px-4 py-3 border border-navy-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                            pattern="[0-9]{5}-[0-9]{7}-[0-9]{1}"
-                            maxLength={15}
-                          />
-                          <p className="text-xs text-navy-500 mt-1">
-                            CNIC helps verify your identity for secure transactions
-                          </p>
-                        </div>
-                        
-                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                          <h4 className="font-semibold text-amber-900 mb-2">📱 Supported Networks</h4>
-                          <div className="grid grid-cols-3 gap-2 text-sm">
-                            <div className="text-amber-700">🎵 Jazz/Warid</div>
-                            <div className="text-amber-700">📱 Ufone</div>
-                            <div className="text-amber-700">📞 Telenor</div>
-                            <div className="text-amber-700">🌐 Zong</div>
-                            <div className="text-amber-700">💳 JazzCash</div>
-                            <div className="text-amber-700">🏦 Bank Links</div>
-                          </div>
-                        </div>
-                        
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                          <h4 className="font-semibold text-green-900 mb-2">✅ Payment Process</h4>
-                          <ol className="text-sm text-green-700 space-y-1">
-                            <li>1. You'll be redirected to JazzCash secure payment page</li>
-                            <li>2. Enter your JazzCash PIN or mobile banking credentials</li>
-                            <li>3. Confirm the payment amount and merchant details</li>
-                            <li>4. Complete the transaction and return to MiniHub</li>
-                          </ol>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Bank Transfer */}
-                    {paymentMethod === 'bank_transfer' && (
-                      <div className="space-y-4">
-                        <div className="p-4 bg-orange-50 rounded-lg">
-                          <h4 className="font-semibold text-navy-900 mb-2">Choose Account for Transfer</h4>
-                          <div className="space-y-3">
-                            {activeAccounts.map((account) => (
-                              <label key={account.id} className="flex items-start space-x-3 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="bankAccount"
-                                  value={account.id}
-                                  checked={selectedAccountId === account.id}
-                                  onChange={(e) => setSelectedAccountId(e.target.value)}
-                                  className="mt-1"
-                                  required
-                                />
-                                <div className="flex-1">
-                                  <div className="font-medium text-navy-900">{account.accountName}</div>
-                                  <div className="text-sm text-navy-600">{account.bankName}</div>
-                                  <div className="text-sm text-navy-600">Account: {account.accountNumber}</div>
-                                  {account.routingNumber && (
-                                    <div className="text-sm text-navy-600">Routing: {account.routingNumber}</div>
-                                  )}
-                                </div>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="p-4 bg-blue-50 rounded-lg">
-                          <h4 className="font-semibold text-blue-900 mb-2">Transfer Instructions</h4>
-                          <ul className="text-sm text-blue-800 space-y-1">
-                            <li>• Transfer the exact amount shown in your order summary</li>
-                            <li>• Include your order number in the transfer reference</li>
-                            <li>• Your order will be processed once payment is confirmed</li>
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setCurrentStep(1)}
-                        className="px-6 py-3 border border-navy-300 text-navy-600 rounded-lg hover:bg-navy-50 transition-colors flex items-center space-x-2"
-                      >
-                        <FiArrowLeft className="w-5 h-5" />
-                        <span>Back</span>
-                      </button>
-                      
-                      <button
-                        type="submit"
-                        disabled={isProcessing}
-                        className="btn-primary flex items-center space-x-2 disabled:opacity-50"
-                      >
-                        {isProcessing ? (
-                          <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                            <span>Processing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Place Order</span>
-                            <FiCheck className="w-5 h-5" />
-                          </>
-                        )}
-                      </button>
                     </div>
-                  </form>
-                </motion.div>
-              )}
-              
-              {/* Step 4: Order Confirmation */}
-              {currentStep === 4 && orderComplete && (
-                <motion.div
-                  key="confirmation"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-lg shadow-soft p-8 text-center"
-                >
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <FiCheck className="w-8 h-8 text-green-600" />
                   </div>
-                  
-                  <h2 className="text-3xl font-bold text-navy-900 mb-4">Order Confirmed!</h2>
-                  <p className="text-navy-600 mb-6">
-                    Thank you for your order. We'll send you a confirmation email shortly.
-                  </p>
-                  
-                  {orderState.currentOrder && (
-                    <div className="bg-navy-50 rounded-lg p-4 mb-6">
-                      <p className="text-sm text-navy-600">Order Number</p>
-                      <p className="text-lg font-bold text-navy-900">{orderState.currentOrder.orderNumber}</p>
+                </div>
+                
+                <form onSubmit={handlePaymentSubmit} className="space-y-6">
+                  {/* Cash on Delivery - Enhanced Information */}
+                  {paymentMethod === 'cash_on_delivery' && (
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <FiShoppingBag className="w-5 h-5 text-green-600" />
+                        <h4 className="font-semibold text-green-900">Cash on Delivery Selected</h4>
+                      </div>
+                      <p className="text-sm text-green-800 mb-3">
+                        Pay in cash when your order is delivered to your doorstep. 
+                        Please have the exact amount ready for our delivery partner.
+                      </p>
+                      <div className="bg-green-100 p-3 rounded border border-green-300">
+                        <h5 className="font-medium text-green-900 mb-2">💡 Important Notes:</h5>
+                        <ul className="text-sm text-green-800 space-y-1">
+                          <li>• Please have exact change ready: {formatCurrency(total)}</li>
+                          <li>• Our delivery partner will provide a receipt</li>
+                          <li>• Delivery typically takes 2-5 business days</li>
+                          <li>• COD orders above PKR 5,000 get free shipping!</li>
+                        </ul>
+                      </div>
                     </div>
                   )}
-                  
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+
+                  {/* Bank Transfer */}
+                  {paymentMethod === 'bank_transfer' && (
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <FiDollarSign className="w-5 h-5 text-blue-600" />
+                        <h4 className="font-semibold text-blue-900">Bank Transfer Selected</h4>
+                      </div>
+                      
+                      {bankTransferAccounts.length > 0 ? (
+                        <div className="space-y-4">
+                          <p className="text-sm text-blue-800 mb-3">
+                            Transfer the exact amount to one of our bank accounts and upload the receipt.
+                          </p>
+
+                          {/* Bank Account Selection */}
+                          <div className="space-y-3">
+                            <h5 className="font-medium text-blue-900">Select Bank Account:</h5>
+                            {bankTransferAccounts.map((account) => (
+                              <div 
+                                key={account.id}
+                                className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                                  selectedBankAccount === account.id
+                                    ? 'border-blue-500 bg-blue-100' 
+                                    : 'border-blue-200 hover:border-blue-300'
+                                }`}
+                                onClick={() => setSelectedBankAccount(account.id)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h6 className="font-semibold text-blue-900">{account.bankName}</h6>
+                                    <p className="text-sm text-blue-700">Account: {account.accountNumber}</p>
+                                    <p className="text-sm text-blue-700">Name: {account.accountName}</p>
+                                    {account.iban && (
+                                      <p className="text-sm text-blue-700">IBAN: {account.iban}</p>
+                                    )}
+                                  </div>
+                                  <div className={`w-4 h-4 rounded-full border-2 ${
+                                    selectedBankAccount === account.id
+                                      ? 'border-blue-500 bg-blue-500' 
+                                      : 'border-blue-300'
+                                  }`}>
+                                    {selectedBankAccount === account.id && (
+                                      <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="bg-blue-100 p-3 rounded border border-blue-300">
+                            <h5 className="font-medium text-blue-900 mb-2">📋 Transfer Instructions:</h5>
+                            <ul className="text-sm text-blue-800 space-y-1">
+                              <li>1. Transfer exactly {formatCurrency(total)} to the selected account</li>
+                              <li>2. Keep the bank receipt/screenshot as proof</li>
+                              <li>3. Your order will be processed after payment verification</li>
+                              <li>4. Processing typically takes 1-2 business days</li>
+                            </ul>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-yellow-100 rounded border border-yellow-300">
+                          <p className="text-sm text-yellow-800">
+                            Bank transfer accounts are currently being updated. Please choose cash on delivery or contact support.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Payment Security Notice */}
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <FiShield className="w-6 h-6 text-gray-600" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Secure Payment</h4>
+                      <p className="text-sm text-gray-600">
+                        Your payment information is protected with bank-level security
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex space-x-4">
                     <button
-                      onClick={() => navigate('/')}
-                      className="btn-primary"
+                      type="button"
+                      onClick={() => setCurrentStep(1)}
+                      className="flex-1 px-6 py-3 border border-navy-300 text-navy-700 font-medium rounded-lg hover:bg-navy-50 transition-all duration-200"
                     >
-                      Continue Shopping
+                      Back to Shipping
                     </button>
                     <button
-                      onClick={() => navigate('/orders')}
-                      className="px-6 py-3 border border-navy-300 text-navy-600 rounded-lg hover:bg-navy-50 transition-colors"
+                      type="submit"
+                      disabled={isSubmitting || (paymentMethod === 'bank_transfer' && !selectedBankAccount)}
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-deepPurple-600 to-purple-600 text-white font-medium rounded-lg hover:from-deepPurple-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      View Orders
+                      {isSubmitting ? 'Processing...' : 'Place Order'}
                     </button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Step 3: Order Complete */}
+            {currentStep === 3 && (
+              <motion.div
+                key="complete"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-lg shadow-soft p-8 text-center"
+              >
+                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FiCheck className="w-8 h-8 text-white" />
+                </div>
+                
+                <h2 className="text-2xl font-bold text-navy-900 mb-4">Order Placed Successfully!</h2>
+                
+                <p className="text-navy-600 mb-6">
+                  Thank you for your order. You will receive a confirmation email shortly with your order details.
+                </p>
+
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200 mb-6">
+                  <h3 className="font-semibold text-green-900 mb-2">What's Next?</h3>
+                  <ul className="text-sm text-green-800 space-y-1 text-left">
+                    <li>• You'll receive an email confirmation within 5 minutes</li>
+                    <li>• Our team will process your order within 24 hours</li>
+                    <li>• We'll send you tracking information once shipped</li>
+                    <li>• Estimated delivery: 2-5 business days</li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <a
+                    href="/"
+                    className="px-6 py-3 bg-gradient-to-r from-deepPurple-600 to-purple-600 text-white font-medium rounded-lg hover:from-deepPurple-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Back to Home
+                  </a>
+                  <a
+                    href="/category/0-6-months"
+                    className="px-6 py-3 border border-navy-300 text-navy-700 font-medium rounded-lg hover:bg-navy-50 transition-all duration-200"
+                  >
+                    Continue Shopping
+                  </a>
+                </div>
+              </motion.div>
+            )}
           </div>
-          
-          {/* Order Summary */}
+
+          {/* Order Summary Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-soft p-6 sticky top-6">
-              <h3 className="text-xl font-bold text-navy-900 mb-6">Order Summary</h3>
+            <div className="bg-white rounded-lg shadow-soft p-6 sticky top-4">
+              <h3 className="text-xl font-bold text-navy-900 mb-4">Order Summary</h3>
               
-              <div className="space-y-4 mb-6">
-                {cartState.items.map((item) => (
+              {/* Cart Items */}
+              <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                {cart.items.map((item) => (
                   <div key={item.product.id} className="flex items-center space-x-3">
-                    <img
-                      src={item.product.images[item.product.thumbnailIndex || 0]}
+                    <img 
+                      src={item.product.images[0]} 
                       alt={item.product.name}
-                      className="w-12 h-12 object-cover rounded-lg"
+                      className="w-12 h-12 object-cover rounded"
                     />
-                    <div className="flex-1">
-                      <h4 className="font-medium text-navy-900 text-sm">{item.product.name}</h4>
-                      <p className="text-navy-600 text-sm">Qty: {item.quantity}</p>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-navy-900 truncate">{item.product.name}</h4>
+                      <p className="text-sm text-navy-600">Qty: {item.quantity}</p>
                     </div>
-                    <span className="font-medium text-navy-900">
+                    <div className="text-navy-900 font-medium">
                       {formatCurrency(item.product.price * item.quantity)}
-                    </span>
+                    </div>
                   </div>
                 ))}
               </div>
-              
-              {/* Currency Notice for JazzCash */}
-              {/* Removed as all prices are now in PKR */}
-              
-              <div className="border-t border-navy-200 pt-6 space-y-3">
+
+              {/* Pricing Breakdown */}
+              <div className="border-t border-navy-200 pt-4 space-y-2">
                 <div className="flex justify-between text-navy-600">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-navy-600">
-                  <span>Tax</span>
+                  <span>Tax (10%)</span>
                   <span>{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between text-navy-600">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : formatCurrency(shipping)}</span>
+                  <span>{shipping > 0 ? formatCurrency(shipping) : 'FREE'}</span>
                 </div>
-                <div className="border-t border-navy-200 pt-3">
-                  <div className="flex justify-between text-lg font-bold text-navy-900">
-                    <span>Total</span>
-                    <span>{formatCurrency(total)}</span>
+                {shipping === 0 && (
+                  <div className="text-xs text-green-600 font-medium">
+                    🎉 Free shipping on orders over PKR 5,000
                   </div>
-                  {/* Removed JazzCash Mobile Wallet Payment notice */}
+                )}
+                <div className="border-t border-navy-200 pt-2 flex justify-between text-lg font-bold text-navy-900">
+                  <span>Total</span>
+                  <span>{formatCurrency(total)}</span>
+                </div>
+              </div>
+
+              {/* Trust Signals */}
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center space-x-2 text-sm text-navy-600">
+                  <FiShield className="w-4 h-4 text-green-600" />
+                  <span>Secure Payment</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-navy-600">
+                  <FiTruck className="w-4 h-4 text-blue-600" />
+                  <span>Fast Delivery</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-navy-600">
+                  <FiPackage className="w-4 h-4 text-purple-600" />
+                  <span>Quality Guarantee</span>
                 </div>
               </div>
             </div>

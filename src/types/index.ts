@@ -50,15 +50,10 @@ export interface PaymentAccountDetails {
   accountName: string;
   accountNumber: string;
   bankName: string;
-  paymentMethodType: 'bank_transfer' | 'jazzcash' | 'easypaisa' | 'other';
+  paymentMethodType: 'bank_transfer';
   routingNumber?: string;
   swiftCode?: string;
   iban?: string;
-  // JazzCash/Mobile wallet specific fields
-  mobileNumber?: string;
-  merchantId?: string;
-  apiKey?: string;
-  apiSecret?: string;
   // Additional details
   branchCode?: string;
   description?: string;
@@ -86,32 +81,12 @@ export interface CreditCardInfo {
   cardholderName: string;
 }
 
-export interface JazzCashInfo {
-  mobileNumber: string;
-  cnic?: string;
-  customerName: string;
-}
-
-export interface JazzCashResponse {
-  transactionId: string;
-  status: 'pending' | 'success' | 'failed';
-  amount: number;
-  currency: string;
-  responseCode: string;
-  responseMessage: string;
-  redirectUrl?: string;
-  orderNumber: string;
-  createdAt: Date;
-}
-
-export type PaymentMethod = 'credit_card' | 'bank_transfer' | 'cash_on_delivery' | 'jazzcash';
+export type PaymentMethod = 'bank_transfer' | 'cash_on_delivery';
 
 export interface PaymentInfo {
   method: PaymentMethod;
   creditCard?: CreditCardInfo;
   selectedAccount?: PaymentAccountDetails;
-  jazzCash?: JazzCashInfo;
-  jazzCashResponse?: JazzCashResponse;
 }
 
 export interface Order {

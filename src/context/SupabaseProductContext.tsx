@@ -88,7 +88,35 @@ export const SupabaseProductProvider: React.FC<{ children: React.ReactNode }> = 
     try {
       setState(prev => ({ ...prev, isLoading: true }));
 
-      const dbProduct = supabaseHelpers.formatProductForDB(productData);
+      console.log('Adding product with data:', productData);
+
+      // Ensure required fields are present
+      if (!productData.name || !productData.price || !productData.category) {
+        throw new Error('Name, price, and category are required');
+      }
+
+      // Format data for database with all required fields
+      const dbProduct = {
+        name: productData.name,
+        price: Number(productData.price),
+        original_price: productData.originalPrice ? Number(productData.originalPrice) : null,
+        category: productData.category,
+        description: productData.description || '',
+        features: Array.isArray(productData.features) ? productData.features : [],
+        images: Array.isArray(productData.images) ? productData.images : [],
+        stock_quantity: Number(productData.stockQuantity) || 0,
+        low_stock_threshold: Number(productData.lowStockThreshold) || 10,
+        max_stock_quantity: Number(productData.maxStockQuantity) || 100,
+        in_stock: (Number(productData.stockQuantity) || 0) > 0,
+        stock_status: (Number(productData.stockQuantity) || 0) > 0 ? 'in_stock' : 'out_of_stock',
+        rating: Number(productData.rating) || 0,
+        reviews: Number(productData.reviews) || 0,
+        is_new: Boolean(productData.isNew),
+        is_featured: Boolean(productData.isFeatured),
+        is_active: true
+      };
+
+      console.log('Formatted product for DB:', dbProduct);
 
       const { data, error } = await supabase
         .from('products')
@@ -97,11 +125,33 @@ export const SupabaseProductProvider: React.FC<{ children: React.ReactNode }> = 
         .single();
 
       if (error) {
-        throw error;
+        console.error('Supabase error:', error);
+        throw new Error(`Database error: ${error.message}`);
       }
 
-      // Add to local state
-      const newProduct = supabaseHelpers.formatProduct(data);
+      console.log('Product created successfully:', data);
+
+      // Add to local state with proper formatting
+      const newProduct = {
+        id: data.id,
+        name: data.name,
+        price: data.price,
+        originalPrice: data.original_price,
+        category: data.category,
+        description: data.description,
+        features: data.features || [],
+        images: data.images || [],
+        inStock: data.in_stock,
+        stockQuantity: data.stock_quantity,
+        lowStockThreshold: data.low_stock_threshold,
+        maxStockQuantity: data.max_stock_quantity,
+        stockStatus: data.stock_status,
+        rating: data.rating,
+        reviews: data.reviews,
+        isNew: data.is_new,
+        isFeatured: data.is_featured,
+      };
+
       setState(prev => ({
         ...prev,
         products: [...prev.products, newProduct],
@@ -112,7 +162,20 @@ export const SupabaseProductProvider: React.FC<{ children: React.ReactNode }> = 
     } catch (error: any) {
       console.error('Error adding product:', error);
       setState(prev => ({ ...prev, isLoading: false }));
-      return { success: false, message: error.message || 'Failed to add product' };
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to add product';
+      if (error.message.includes('relation "products" does not exist')) {
+        errorMessage = 'Products table does not exist. Please run the database setup script.';
+      } else if (error.message.includes('permission denied')) {
+        errorMessage = 'Permission denied. Please check database permissions.';
+      } else if (error.message.includes('violates check constraint')) {
+        errorMessage = 'Invalid data format. Please check all required fields.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return { success: false, message: errorMessage };
     }
   };
 

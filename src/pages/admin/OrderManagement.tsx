@@ -157,7 +157,7 @@ const OrderManagement: React.FC = () => {
 
 
 
-  const formatPrice = (price: number) => `Rs. ${price.toLocaleString('en-PK')}`;
+  const formatPrice = (price: number) => `PKR ${price.toLocaleString('en-PK')}`;
   const formatDate = (date: Date) => new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
