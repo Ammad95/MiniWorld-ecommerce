@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
-  FiShoppingBag, 
-  FiUsers, 
+  FiPackage, 
   FiDollarSign, 
+  FiShoppingBag, 
   FiTrendingUp, 
-  FiEdit,
-  FiPlus,
-  FiSettings,
-  FiLogOut,
-  FiCreditCard
+  FiUsers, 
+  FiClock,
+  FiTruck,
+  FiCheckCircle
 } from 'react-icons/fi';
 import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
+import { useSupabaseOrder } from '../../context/SupabaseOrderContext';
 import { supabase } from '../../lib/supabase';
 import CreateSubAdminModal from '../../components/admin/CreateSubAdminModal';
 import PaymentAccountsModal from '../../components/admin/PaymentAccountsModal';
@@ -39,6 +39,7 @@ interface RecentOrder {
 
 const AdminDashboard: React.FC = () => {
   const { state: authState, signOut } = useSupabaseAuth();
+  const { state: orderState } = useSupabaseOrder();
   
   const [stats, setStats] = useState<DashboardStats>({
     totalOrders: 0,
@@ -58,20 +59,43 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-    fetchRecentOrders();
-  }, []);
+    
+    // Update recent orders from context
+    const recentOrdersFromContext = orderState.orders
+      .slice(0, 5) // Take first 5 (already sorted by created_at desc in context)
+      .map(order => ({
+        id: order.id,
+        customer_name: order.shippingAddress.fullName,
+        customer_email: order.shippingAddress.email,
+        total_amount: order.total,
+        status: order.status,
+        created_at: order.createdAt.toISOString()
+      }));
+    
+    setRecentOrders(recentOrdersFromContext);
+  }, [orderState.orders]);
 
   const fetchDashboardStats = async () => {
     try {
       setIsLoading(true);
 
-      // Initialize default stats
+      // Calculate order statistics from the order context
+      const orders = orderState.orders;
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      const completedOrders = orders.filter(o => o.status === 'delivered' || o.status === 'completed');
+      const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'confirmed');
+      const todayOrders = orders.filter(o => new Date(o.createdAt) >= today);
+      const totalRevenue = completedOrders.reduce((sum, order) => sum + order.total, 0);
+
+      // Initialize dashboard stats
       let dashboardStats: DashboardStats = {
-        totalOrders: 0,
-        pendingOrders: 0,
-        completedOrders: 0,
-        todayOrders: 0,
-        totalRevenue: 0,
+        totalOrders: orders.length,
+        pendingOrders: pendingOrders.length,
+        completedOrders: completedOrders.length,
+        todayOrders: todayOrders.length,
+        totalRevenue: totalRevenue,
         totalProducts: 0,
         activeProducts: 0,
         lowStockProducts: 0,
@@ -93,52 +117,12 @@ const AdminDashboard: React.FC = () => {
         console.warn('Error fetching products:', error);
       }
 
-      // Safely fetch order data
-      try {
-        const { data: orders, error: orderError } = await supabase
-          .from('orders')
-          .select('total_amount, status, created_at');
-
-        if (!orderError && orders) {
-          const now = new Date();
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          
-          const completedOrders = orders.filter(o => o.status === 'completed');
-          const todayOrders = orders.filter(o => new Date(o.created_at) >= today);
-          const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-
-          dashboardStats.totalOrders = orders.length;
-          dashboardStats.pendingOrders = orders.filter(o => o.status === 'pending').length;
-          dashboardStats.completedOrders = completedOrders.length;
-          dashboardStats.todayOrders = todayOrders.length;
-          dashboardStats.totalRevenue = totalRevenue;
-        }
-      } catch (error) {
-        console.warn('Error fetching orders:', error);
-      }
-
       setStats(dashboardStats);
 
     } catch (error) {
       console.error('Error in fetchDashboardStats:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchRecentOrders = async () => {
-    try {
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('id, customer_name, customer_email, total_amount, status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (!error && orders) {
-        setRecentOrders(orders);
-      }
-    } catch (error) {
-      console.warn('Error fetching recent orders:', error);
     }
   };
 
@@ -183,7 +167,7 @@ const AdminDashboard: React.FC = () => {
             onClick={() => setShowCreateSubAdminModal(true)}
             className="bg-deepPurple-600 text-white px-4 py-2 rounded-lg hover:bg-deepPurple-700 transition-colors flex items-center space-x-2"
           >
-            <FiPlus className="w-4 h-4" />
+            <FiPackage className="w-4 h-4" />
             <span>Add Sub-Admin</span>
           </button>
           
@@ -191,7 +175,7 @@ const AdminDashboard: React.FC = () => {
             onClick={() => setShowPaymentAccountsModal(true)}
             className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
           >
-            <FiCreditCard className="w-4 h-4" />
+            <FiDollarSign className="w-4 h-4" />
             <span>Payment Accounts</span>
           </button>
         </div>
@@ -247,7 +231,7 @@ const AdminDashboard: React.FC = () => {
               <p className="text-xs text-gray-400">{stats.activeProducts} active</p>
             </div>
             <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <FiShoppingBag className="h-6 w-6 text-purple-600" />
+              <FiPackage className="h-6 w-6 text-purple-600" />
             </div>
           </div>
         </motion.div>
@@ -285,7 +269,7 @@ const AdminDashboard: React.FC = () => {
               className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
             >
               <div className="bg-green-100 p-2 rounded-lg">
-                <FiShoppingBag className="w-5 h-5 text-green-600" />
+                <FiPackage className="w-5 h-5 text-green-600" />
               </div>
               <div>
                 <p className="font-medium text-green-900">Manage Products</p>
@@ -311,7 +295,7 @@ const AdminDashboard: React.FC = () => {
               className="flex items-center space-x-3 p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
             >
               <div className="bg-orange-100 p-2 rounded-lg">
-                <FiPlus className="w-5 h-5 text-orange-600" />
+                <FiPackage className="w-5 h-5 text-orange-600" />
               </div>
               <div>
                 <p className="font-medium text-orange-900">Add Sub-Admin</p>
@@ -324,7 +308,7 @@ const AdminDashboard: React.FC = () => {
               className="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
             >
               <div className="bg-blue-100 p-2 rounded-lg">
-                <FiCreditCard className="w-5 h-5 text-blue-600" />
+                <FiDollarSign className="w-5 h-5 text-blue-600" />
               </div>
               <div>
                 <p className="font-medium text-blue-900">Payment Accounts</p>
@@ -390,7 +374,7 @@ const AdminDashboard: React.FC = () => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">System Settings</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-            <FiSettings className="w-5 h-5 text-gray-600" />
+            <FiClock className="w-5 h-5 text-gray-600" />
             <div>
               <p className="font-medium text-gray-900">Configure System</p>
               <p className="text-sm text-gray-500">System configuration settings</p>
@@ -401,7 +385,7 @@ const AdminDashboard: React.FC = () => {
             to="/admin/change-password"
             className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
           >
-            <FiEdit className="w-5 h-5 text-gray-600" />
+            <FiTruck className="w-5 h-5 text-gray-600" />
             <div>
               <p className="font-medium text-gray-900">Change Password</p>
               <p className="text-sm text-gray-500">Update your account password</p>
@@ -412,7 +396,7 @@ const AdminDashboard: React.FC = () => {
             onClick={signOut}
             className="flex items-center space-x-3 p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
           >
-            <FiLogOut className="w-5 h-5 text-red-600" />
+            <FiCheckCircle className="w-5 h-5 text-red-600" />
             <div>
               <p className="font-medium text-red-900">Sign Out</p>
               <p className="text-sm text-red-600">Exit admin panel</p>

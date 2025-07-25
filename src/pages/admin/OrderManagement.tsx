@@ -17,7 +17,7 @@ import {
   FiMapPin
 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import { useOrder } from '../../context/OrderContext';
+import { useSupabaseOrder } from '../../context/SupabaseOrderContext';
 import { Order, OrderStatus } from '../../types';
 
 type StatusFilter = 'all' | 'completed' | 'dispatched' | 'payment_due' | 'cancelled' | 'returned';
@@ -31,7 +31,7 @@ interface StatusConfig {
 }
 
 const OrderManagement: React.FC = () => {
-  const { state, updateOrderStatus } = useOrder();
+  const { state, updateOrderStatus } = useSupabaseOrder();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);

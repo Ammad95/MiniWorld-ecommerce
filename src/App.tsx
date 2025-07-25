@@ -5,7 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { SupabaseProductProvider } from './context/SupabaseProductContext';
 import { CartProvider } from './context/CartContext';
 import { PaymentProvider } from './context/PaymentContext';
-import { OrderProvider } from './context/OrderContext';
+import { SupabaseOrderProvider } from './context/SupabaseOrderContext';
 
 // Layout and Pages
 import Layout from './components/common/Layout';
@@ -33,7 +33,7 @@ function App() {
   return (
     <SupabaseProductProvider>
       <PaymentProvider>
-        <OrderProvider>
+        <SupabaseOrderProvider>
           <CartProvider>
             <Router>
               <Routes>
@@ -62,7 +62,7 @@ function App() {
               </Routes>
             </Router>
           </CartProvider>
-        </OrderProvider>
+        </SupabaseOrderProvider>
       </PaymentProvider>
     </SupabaseProductProvider>
   );

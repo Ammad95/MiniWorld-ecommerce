@@ -1,8 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+
+// Context Providers
 import { SupabaseAuthProvider } from './context/SupabaseAuthContext';
 import { SupabaseProductProvider } from './context/SupabaseProductContext';
+import { SupabaseOrderProvider } from './context/SupabaseOrderContext';
 import { PaymentProvider } from './context/PaymentContext';
-import { OrderProvider } from './context/OrderContext';
+
+// Admin Components and Pages
 import AdminLayout from './components/admin/AdminLayout';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import AdminLogin from './pages/admin/AdminLogin';
@@ -18,8 +22,8 @@ function AdminApp() {
   return (
     <SupabaseAuthProvider>
       <SupabaseProductProvider>
-        <PaymentProvider>
-          <OrderProvider>
+        <SupabaseOrderProvider>
+          <PaymentProvider>
             <Routes>
               {/* Admin Authentication */}
               <Route path="/login" element={<AdminLogin />} />
@@ -63,8 +67,8 @@ function AdminApp() {
               {/* Catch-all redirect to dashboard */}
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Routes>
-          </OrderProvider>
-        </PaymentProvider>
+          </PaymentProvider>
+        </SupabaseOrderProvider>
       </SupabaseProductProvider>
     </SupabaseAuthProvider>
   );

@@ -14,13 +14,13 @@ import {
   FiHome
 } from 'react-icons/fi';
 import { useCart } from '../context/CartContext';
-import { useOrder } from '../context/OrderContext';
+import { useSupabaseOrder } from '../context/SupabaseOrderContext';
 import { usePayment } from '../context/PaymentContext';
 import { ShippingAddress, PaymentMethod } from '../types';
 
 const CheckoutPage: React.FC = () => {
   const { state: cart, clearCart } = useCart();
-  const { createOrder } = useOrder();
+  const { createOrder } = useSupabaseOrder();
   const { paymentAccounts } = usePayment();
 
   // Get active accounts for bank transfer options
