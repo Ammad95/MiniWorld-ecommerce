@@ -467,13 +467,11 @@ const OrderManagement: React.FC = () => {
                     {selectedOrder.items.map((item, index) => (
                       <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center space-x-4">
-                          <img
-                            src={item.product.images[0]}
-                            alt={item.product.name}
-                            className="w-16 h-16 object-cover rounded-lg"
-                          />
+                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <span className="text-gray-500 text-sm">📦</span>
+                          </div>
                           <div>
-                            <h4 className="font-medium text-gray-900">{item.product.name}</h4>
+                            <h4 className="font-medium text-gray-900">{item.product?.name || 'Product'}</h4>
                             <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                           </div>
                         </div>

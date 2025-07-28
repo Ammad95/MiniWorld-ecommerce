@@ -46,10 +46,25 @@ export const SupabaseOrderProvider: React.FC<{ children: ReactNode }> = ({ child
 
   // Convert Supabase order to app format
   const formatOrderFromDB = (dbOrder: any): Order => {
+    // Convert database order_items to CartItem format
+    const cartItems = (dbOrder.order_items || []).map((dbItem: any) => ({
+      id: dbItem.id || Math.random().toString(),
+      product: {
+        id: dbItem.product_id || 'unknown',
+        name: dbItem.product_name || 'Unknown Product',
+        price: Number(dbItem.unit_price || 0),
+        images: [], // No images stored in order items
+        description: '',
+        category: '',
+        isActive: true
+      },
+      quantity: Number(dbItem.quantity || 1)
+    }));
+
     return {
       id: dbOrder.id,
       orderNumber: dbOrder.order_number || `MW${dbOrder.id.slice(-6)}`,
-      items: dbOrder.order_items || [],
+      items: cartItems,
       subtotal: Number(dbOrder.subtotal || 0),
       tax: Number(dbOrder.tax || 0),
       shipping: Number(dbOrder.shipping || 0),
@@ -107,6 +122,7 @@ export const SupabaseOrderProvider: React.FC<{ children: ReactNode }> = ({ child
   // Fetch orders from Supabase
   const fetchOrders = async () => {
     try {
+      console.log('🔍 Starting to fetch orders from Supabase...');
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       const { data: orders, error } = await supabase
@@ -123,12 +139,18 @@ export const SupabaseOrderProvider: React.FC<{ children: ReactNode }> = ({ child
         `)
         .order('created_at', { ascending: false });
 
+      console.log('📊 Supabase response:', { orders, error });
+
       if (error) {
+        console.error('❌ Supabase error:', error);
         throw error;
       }
 
+      console.log(`📦 Found ${orders?.length || 0} orders in database`);
+
       // Convert to app format
       const formattedOrders = (orders || []).map(formatOrderFromDB);
+      console.log('✅ Formatted orders:', formattedOrders);
 
       setState(prev => ({
         ...prev,
@@ -137,7 +159,7 @@ export const SupabaseOrderProvider: React.FC<{ children: ReactNode }> = ({ child
         error: null
       }));
     } catch (error: any) {
-      console.error('Error fetching orders:', error);
+      console.error('💥 Error fetching orders:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -285,8 +307,34 @@ export const SupabaseOrderProvider: React.FC<{ children: ReactNode }> = ({ child
     return state.orders.find(order => order.id === orderId);
   };
 
+  // Test database connection
+  const testDatabaseConnection = async () => {
+    try {
+      console.log('🔗 Testing database connection...');
+      
+      // Simple query to check if orders table exists
+      const { data, error, count } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true });
+      
+      console.log('🏗️ Orders table test:', { data, error, count });
+      
+      if (error) {
+        console.error('❌ Orders table error:', error.message);
+        if (error.message.includes('relation "public.orders" does not exist')) {
+          console.error('🚨 ORDERS TABLE DOES NOT EXIST! You need to run the SQL script.');
+        }
+      } else {
+        console.log(`✅ Orders table exists with ${count} records`);
+      }
+    } catch (err) {
+      console.error('💥 Database connection test failed:', err);
+    }
+  };
+
   // Load orders on mount
   useEffect(() => {
+    testDatabaseConnection();
     fetchOrders();
   }, []);
 
