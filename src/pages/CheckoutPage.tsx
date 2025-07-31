@@ -32,6 +32,7 @@ const CheckoutPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash_on_delivery');
   const [selectedBankAccount, setSelectedBankAccount] = useState<string | null>(null);
+  const [completedOrderNumber, setCompletedOrderNumber] = useState<string>('');
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     fullName: '',
     phone: '',
@@ -106,7 +107,10 @@ const CheckoutPage: React.FC = () => {
         total
       };
 
-      await createOrder(orderData);
+      const completedOrder = await createOrder(orderData);
+
+      // Store order number for confirmation screen
+      setCompletedOrderNumber(completedOrder.orderNumber);
 
       // Clear cart and show success
       clearCart();
@@ -526,6 +530,12 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 
                 <h2 className="text-2xl font-bold text-navy-900 mb-4">Order Placed Successfully!</h2>
+                
+                {/* Order Number Display */}
+                <div className="bg-navy-50 border border-navy-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-navy-600 mb-1">Order Number</p>
+                  <p className="text-xl font-bold text-navy-900">{completedOrderNumber}</p>
+                </div>
                 
                 <p className="text-navy-600 mb-6">
                   Thank you for your order. You will receive a confirmation email shortly with your order details.
