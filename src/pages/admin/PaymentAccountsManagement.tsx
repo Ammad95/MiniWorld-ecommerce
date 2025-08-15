@@ -14,11 +14,11 @@ import {
   FiCheck
 } from 'react-icons/fi';
 import { PaymentAccountDetails } from '../../types';
-import { usePayment } from '../../context/PaymentContext';
+import { useSupabasePayment } from '../../context/SupabasePaymentContext';
 import AccountModal from '../../components/admin/AccountModal';
 
 const PaymentAccountsManagement: React.FC = () => {
-  const { state, deleteAccountDetails, toggleAccountStatus } = usePayment();
+  const { state, deleteAccountDetails, toggleAccountStatus } = useSupabasePayment();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<'all' | 'bank_transfer'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');

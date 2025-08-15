@@ -15,13 +15,15 @@ import {
 } from 'react-icons/fi';
 import { useCart } from '../context/CartContext';
 import { useSupabaseOrder } from '../context/SupabaseOrderContext';
-import { usePayment } from '../context/PaymentContext';
+import { useSupabasePayment } from '../context/SupabasePaymentContext';
+import { useSettings } from '../context/SettingsContext';
 import { ShippingAddress, PaymentMethod } from '../types';
 
 const CheckoutPage: React.FC = () => {
   const { state: cart, clearCart } = useCart();
   const { createOrder } = useSupabaseOrder();
-  const { paymentAccounts } = usePayment();
+  const { paymentAccounts } = useSupabasePayment();
+  const { calculateTax, calculateShipping, state: settingsState } = useSettings();
 
   // Get active accounts for bank transfer options
   const bankTransferAccounts = paymentAccounts.filter(
@@ -47,13 +49,13 @@ const CheckoutPage: React.FC = () => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate totals
+  // Calculate totals using dynamic settings
   const subtotal = cart.total;
-  const tax = subtotal * 0.1; // 10% tax
-  const shipping = subtotal >= 5000 ? 0 : 150; // Free shipping over PKR 5,000
+  const tax = calculateTax(subtotal);
+  const shipping = calculateShipping(subtotal);
   const total = subtotal + tax + shipping;
 
-  const formatCurrency = (amount: number) => `PKR ${amount.toLocaleString('en-PK')}`;
+  const formatCurrency = (amount: number) => `${settingsState.settings.currency.symbol} ${amount.toLocaleString('en-PK')}`;
 
   useEffect(() => {
     if (bankTransferAccounts.length > 0) {
@@ -409,7 +411,7 @@ const CheckoutPage: React.FC = () => {
                           <li>• Please have exact change ready: {formatCurrency(total)}</li>
                           <li>• Our delivery partner will provide a receipt</li>
                           <li>• Delivery typically takes 2-5 business days</li>
-                          <li>• COD orders above PKR 5,000 get free shipping!</li>
+                          <li>• COD orders above {formatCurrency(settingsState.settings.shippingRate.free_shipping_threshold)} get free shipping!</li>
                         </ul>
                       </div>
                     </div>
@@ -601,7 +603,7 @@ const CheckoutPage: React.FC = () => {
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-navy-600">
-                  <span>Tax (10%)</span>
+                  <span>Tax ({(settingsState.settings.taxRate.rate * 100).toFixed(1)}%)</span>
                   <span>{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between text-navy-600">
@@ -610,7 +612,7 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 {shipping === 0 && (
                   <div className="text-xs text-green-600 font-medium">
-                    🎉 Free shipping on orders over PKR 5,000
+                    🎉 Free shipping on orders over {formatCurrency(settingsState.settings.shippingRate.free_shipping_threshold)}
                   </div>
                 )}
                 <div className="border-t border-navy-200 pt-2 flex justify-between text-lg font-bold text-navy-900">

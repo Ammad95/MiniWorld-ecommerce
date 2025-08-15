@@ -6,7 +6,7 @@ import {
   FiEyeOff,
   FiInfo
 } from 'react-icons/fi';
-import { usePayment } from '../../context/PaymentContext';
+import { useSupabasePayment } from '../../context/SupabasePaymentContext';
 
 interface FormData {
   accountName: string;
@@ -32,7 +32,7 @@ const AccountModal: React.FC<AccountModalProps> = ({
   onClose,
   editingAccountId
 }) => {
-  const { addAccountDetails, updateAccountDetails, getAccountById } = usePayment();
+  const { addAccountDetails, updateAccountDetails, getAccountById } = useSupabasePayment();
   const [formData, setFormData] = useState<FormData>({
     accountName: '',
     accountNumber: '',

@@ -1,0 +1,1 @@
+[33m96b7232[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Fix order details error: Convert DB order items to CartItem format and handle missing images

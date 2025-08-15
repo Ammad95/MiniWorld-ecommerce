@@ -4,7 +4,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 // Context Providers
 import { SupabaseProductProvider } from './context/SupabaseProductContext';
 import { CartProvider } from './context/CartContext';
-import { PaymentProvider } from './context/PaymentContext';
+import { SupabasePaymentProvider } from './context/SupabasePaymentContext';
+import { SettingsProvider } from './context/SettingsContext';
 import { SupabaseOrderProvider } from './context/SupabaseOrderContext';
 
 // Layout and Pages
@@ -31,12 +32,13 @@ const AdminLoadingFallback = () => (
 
 function App() {
   return (
-    <SupabaseProductProvider>
-      <PaymentProvider>
-        <SupabaseOrderProvider>
-          <CartProvider>
-            <Router>
-              <Routes>
+    <SettingsProvider>
+      <SupabaseProductProvider>
+        <SupabasePaymentProvider>
+          <SupabaseOrderProvider>
+            <CartProvider>
+              <Router>
+                <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Layout />}>
                   <Route index element={<Home />} />
@@ -59,12 +61,13 @@ function App() {
 
                 {/* Catch-all route for 404s - redirect to home */}
                 <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Router>
-          </CartProvider>
-        </SupabaseOrderProvider>
-      </PaymentProvider>
-    </SupabaseProductProvider>
+                              </Routes>
+              </Router>
+            </CartProvider>
+          </SupabaseOrderProvider>
+        </SupabasePaymentProvider>
+      </SupabaseProductProvider>
+    </SettingsProvider>
   );
 }
 

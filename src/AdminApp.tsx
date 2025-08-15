@@ -4,7 +4,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { SupabaseAuthProvider } from './context/SupabaseAuthContext';
 import { SupabaseProductProvider } from './context/SupabaseProductContext';
 import { SupabaseOrderProvider } from './context/SupabaseOrderContext';
-import { PaymentProvider } from './context/PaymentContext';
+import { SupabasePaymentProvider } from './context/SupabasePaymentContext';
+import { SettingsProvider } from './context/SettingsContext';
 
 // Admin Components and Pages
 import AdminLayout from './components/admin/AdminLayout';
@@ -16,14 +17,16 @@ import ProductManagement from './pages/admin/ProductManagement';
 import InventoryManagement from './pages/admin/InventoryManagement';
 import PaymentAccountsManagement from './pages/admin/PaymentAccountsManagement';
 import OrderManagement from './pages/admin/OrderManagement';
+import SettingsManagement from './pages/admin/SettingsManagement';
 import Communications from './pages/admin/Communications';
 
 function AdminApp() {
   return (
     <SupabaseAuthProvider>
-      <SupabaseProductProvider>
-        <SupabaseOrderProvider>
-          <PaymentProvider>
+      <SettingsProvider>
+        <SupabaseProductProvider>
+          <SupabaseOrderProvider>
+            <SupabasePaymentProvider>
             <Routes>
               {/* Admin Authentication */}
               <Route path="/login" element={<AdminLogin />} />
@@ -40,6 +43,7 @@ function AdminApp() {
                 <Route path="products" element={<ProductManagement />} />
                 <Route path="inventory" element={<InventoryManagement />} />
                 <Route path="payments" element={<PaymentAccountsManagement />} />
+                <Route path="settings" element={<SettingsManagement />} />
                 <Route path="communications" element={<Communications />} />
                 <Route path="change-password" element={<ChangePassword />} />
                 
@@ -67,9 +71,10 @@ function AdminApp() {
               {/* Catch-all redirect to dashboard */}
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Routes>
-          </PaymentProvider>
-        </SupabaseOrderProvider>
-      </SupabaseProductProvider>
+            </SupabasePaymentProvider>
+          </SupabaseOrderProvider>
+        </SupabaseProductProvider>
+      </SettingsProvider>
     </SupabaseAuthProvider>
   );
 }
