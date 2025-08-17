@@ -3,7 +3,6 @@ import {
   FiSettings, 
   FiSave, 
   FiRefreshCw, 
-  FiDollarSign,
   FiTruck,
   FiPercent,
   FiGlobe
