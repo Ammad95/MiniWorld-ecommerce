@@ -8,6 +8,7 @@ import {
   FiSearch
 } from 'react-icons/fi';
 import { useCart } from '../../context/CartContext';
+import { useSettings } from '../../context/SettingsContext';
 import { categories } from '../../data/categories';
 import { supabase } from '../../lib/supabase';
 import Logo from './Logo';
@@ -22,13 +23,26 @@ interface Announcement {
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [currentAnnouncement, setCurrentAnnouncement] = useState<string>('✨ Free shipping on orders over PKR 5,000 | New arrivals weekly');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
   const { state } = useCart();
+  const { state: settingsState } = useSettings();
+  
+  const [currentAnnouncement, setCurrentAnnouncement] = useState<string>('');
+  const [hasCustomAnnouncements, setHasCustomAnnouncements] = useState(false);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleSearch = () => setIsSearchOpen(!isSearchOpen);
+
+  // Create dynamic default announcement using current settings
+  const defaultAnnouncement = `✨ Free shipping on orders over ${settingsState.settings.currency.symbol} ${settingsState.settings.shippingRate.free_shipping_threshold.toLocaleString()} | New arrivals weekly`;
+
+  // Update announcement when settings change (if no custom announcements)
+  useEffect(() => {
+    if (!hasCustomAnnouncements) {
+      setCurrentAnnouncement(defaultAnnouncement);
+    }
+  }, [defaultAnnouncement, hasCustomAnnouncements]);
 
   // Fetch active announcements from database
   useEffect(() => {
@@ -43,19 +57,26 @@ const Header: React.FC = () => {
         if (!error && data && data.length > 0) {
           setAnnouncements(data);
           setCurrentAnnouncement(data[0].content);
+          setHasCustomAnnouncements(true);
+        } else {
+          // No custom announcements, use default
+          setAnnouncements([]);
+          setCurrentAnnouncement(defaultAnnouncement);
+          setHasCustomAnnouncements(false);
         }
       } catch (error) {
         console.warn('Could not fetch announcements, using default:', error);
-        // Keep the default announcement if database fetch fails
+        setCurrentAnnouncement(defaultAnnouncement);
+        setHasCustomAnnouncements(false);
       }
     };
 
     fetchAnnouncements();
-  }, []);
+  }, [defaultAnnouncement]);
 
-  // Cycle through announcements if there are multiple
+  // Cycle through announcements if there are multiple custom ones
   useEffect(() => {
-    if (announcements.length > 1) {
+    if (hasCustomAnnouncements && announcements.length > 1) {
       const interval = setInterval(() => {
         setCurrentAnnouncementIndex((prevIndex) => {
           const nextIndex = (prevIndex + 1) % announcements.length;
@@ -66,7 +87,7 @@ const Header: React.FC = () => {
 
       return () => clearInterval(interval);
     }
-  }, [announcements]);
+  }, [announcements, hasCustomAnnouncements]);
 
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-deepPurple-100 sticky top-0 z-50 shadow-sm">
